@@ -1,0 +1,2148 @@
+<title>Клининг-сервис Вода</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --page-bg: #e9f2f3;
+    --shell-bg: #f7fbfb;
+    --bg: #eef5f6;
+    --surface: #ffffff;
+    --surface-2: #eef7f7;
+    --surface-3: #e2eff0;
+    --border: #dcebec;
+    --border-soft: #e8f3f3;
+    --text: #0d1e26;
+    --text-2: #5c7278;
+    --text-3: #8ba0a5;
+    --accent: #00838f;
+    --accent-strong: #00636d;
+    --accent-soft: #e0f5f6;
+    --accent-contrast: #ffffff;
+    --accent-2: #00c3cd;
+    --hero-grad-a: #00e2e7;
+    --hero-grad-b: #007f86;
+    --nav-active-bg: #034091;
+    --nav-active-fg: #ffffff;
+    --status-good-bg: #e2f6e9;
+    --status-good-fg: #148a4d;
+    --status-pending-bg: #fdecd2;
+    --status-pending-fg: #a15e12;
+    --status-bad-bg: #fde3e2;
+    --status-bad-fg: #c22a2f;
+    --chart-income: #009aa2;
+    --chart-expense: #c97a0f;
+    --shadow-1: 0 1px 2px rgba(4,45,51,.07), 0 1px 1px rgba(4,45,51,.05);
+    --shadow-2: 0 20px 44px rgba(4,45,51,.16), 0 3px 10px rgba(4,45,51,.08);
+    --radius-s: 10px;
+    --radius-m: 16px;
+    --radius-l: 22px;
+    --radius-pill: 999px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page-bg: #07161a;
+      --shell-bg: #0d2024;
+      --bg: #0a1a1e;
+      --surface: #132a2f;
+      --surface-2: #183338;
+      --surface-3: #1e3d43;
+      --border: #24474d;
+      --border-soft: #1c383d;
+      --text: #e9f6f7;
+      --text-2: #a1bdc1;
+      --text-3: #6c8b8f;
+      --accent: #0ea0a8;
+      --accent-strong: #3fc2ca;
+      --accent-soft: #12363b;
+      --accent-contrast: #04181a;
+      --accent-2: #22cbd3;
+      --hero-grad-a: #17b9c2;
+      --hero-grad-b: #0a5a60;
+      --nav-active-bg: #0ea0a8;
+      --nav-active-fg: #04181a;
+      --status-good-bg: #123a26;
+      --status-good-fg: #71dc9f;
+      --status-pending-bg: #3c2c12;
+      --status-pending-fg: #f0b761;
+      --status-bad-bg: #3a1719;
+      --status-bad-fg: #f3928d;
+      --chart-income: #0ea0a8;
+      --chart-expense: #c98500;
+      --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+      --shadow-2: 0 22px 48px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page-bg: #07161a;
+    --shell-bg: #0d2024;
+    --bg: #0a1a1e;
+    --surface: #132a2f;
+    --surface-2: #183338;
+    --surface-3: #1e3d43;
+    --border: #24474d;
+    --border-soft: #1c383d;
+    --text: #e9f6f7;
+    --text-2: #a1bdc1;
+    --text-3: #6c8b8f;
+    --accent: #0ea0a8;
+    --accent-strong: #3fc2ca;
+    --accent-soft: #12363b;
+    --accent-contrast: #04181a;
+    --accent-2: #22cbd3;
+    --hero-grad-a: #17b9c2;
+    --hero-grad-b: #0a5a60;
+    --nav-active-bg: #0ea0a8;
+    --nav-active-fg: #04181a;
+    --status-good-bg: #123a26;
+    --status-good-fg: #71dc9f;
+    --status-pending-bg: #3c2c12;
+    --status-pending-fg: #f0b761;
+    --status-bad-bg: #3a1719;
+    --status-bad-fg: #f3928d;
+    --chart-income: #0ea0a8;
+    --chart-expense: #c98500;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+    --shadow-2: 0 22px 48px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  svg{width:16px; height:16px; flex:0 0 auto; display:inline-block; vertical-align:-3px;}
+  body{
+    background:var(--page-bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size:14px;
+    line-height:1.5;
+  }
+  h1,h2,h3,h4{font-family:'Manrope', ui-sans-serif, system-ui, sans-serif; margin:0; text-wrap:balance;}
+  .num, input[type="number"], .money, time, .date-cell-num{font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums;}
+  button, input, select, textarea{font-family:inherit; font-size:inherit; color:inherit;}
+  button{cursor:pointer;}
+  a{color:var(--accent);}
+  ::selection{background:var(--accent-soft);}
+
+  #app{min-height:100vh; padding:22px; display:flex; justify-content:center;}
+
+  /* ---------- Shell (outer framed card, like a product mockup) ---------- */
+  .shell{
+    width:100%; max-width:1440px;
+    background:var(--shell-bg);
+    border-radius:32px;
+    box-shadow:var(--shadow-2);
+    padding:14px 22px 26px;
+  }
+
+  /* ---------- Navbar (top pill bar) ---------- */
+  .navbar{
+    display:flex; align-items:center; gap:18px;
+    background:var(--surface); border-radius:var(--radius-pill);
+    padding:9px 10px 9px 16px; box-shadow:var(--shadow-1);
+    margin-bottom:22px;
+  }
+  .brand{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
+  .brand-mark{
+    width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center;
+    flex:0 0 auto;
+  }
+  .brand-mark img{width:100%; height:100%; object-fit:contain; display:block;}
+  .brand-name{font-family:'Manrope'; font-weight:800; font-size:16px; letter-spacing:-0.01em;}
+  .nav-links{display:flex; align-items:center; gap:3px; flex:1; margin:0 6px;}
+  .nav-item{
+    display:flex; align-items:center; gap:8px;
+    padding:9px 16px; border-radius:var(--radius-pill);
+    color:var(--text-2); background:transparent; border:none;
+    font-weight:700; font-size:13.5px; text-align:left; white-space:nowrap;
+  }
+  .nav-item svg{width:15px; height:15px; flex:0 0 auto; opacity:.8;}
+  .nav-item:hover{background:var(--surface-2); color:var(--text);}
+  .nav-item.active{background:var(--nav-active-bg); color:var(--nav-active-fg);}
+  .nav-item.active svg{opacity:1;}
+  .nav-item:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+  .navbar-side{display:flex; align-items:center; gap:8px; flex:0 0 auto;}
+  .icon-btn{
+    width:36px; height:36px; border-radius:50%; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-2); display:flex; align-items:center; justify-content:center;
+    position:relative; flex:0 0 auto;
+  }
+  .icon-btn:hover{background:var(--surface-2); color:var(--text);}
+  .icon-btn .dot{position:absolute; top:7px; right:8px; width:6px; height:6px; border-radius:50%; background:var(--status-bad-fg); border:1.5px solid var(--surface);}
+
+  /* ---------- Mobile bottom nav ---------- */
+  .mobile-nav{display:none;}
+
+  /* ---------- Main ---------- */
+  .page{padding:2px 10px 16px;}
+  .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap;}
+  .topbar h1{font-size:22px; font-weight:800; letter-spacing:-0.01em;}
+  .topbar .sub{color:var(--text-2); font-size:13px; margin-top:3px;}
+  .topbar-actions{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:9px 16px; border-radius:var(--radius-pill); border:1px solid var(--border);
+    background:var(--surface); color:var(--text); font-weight:700; font-size:13px;
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--surface-2);}
+  .btn svg{
+    width:16px; height:16px; padding:4px; margin:-4px 0; box-sizing:content-box;
+    border-radius:50%; background:var(--surface-3);
+  }
+  .btn-primary{background:var(--accent); border-color:var(--accent); color:var(--accent-contrast);}
+  .btn-primary:hover{background:var(--accent-strong); border-color:var(--accent-strong);}
+  .btn-primary svg{background:rgba(255,255,255,.24);}
+  .btn-accent-outline{border-color:var(--accent); color:var(--accent); background:var(--surface);}
+  .btn-accent-outline svg{background:var(--accent-soft); color:var(--accent);}
+  .btn-danger{color:var(--status-bad-fg); border-color:var(--status-bad-bg);}
+  .btn-danger:hover{background:var(--status-bad-bg);}
+  .btn-danger svg{background:var(--status-bad-bg);}
+  .btn-ghost{border-color:transparent; background:transparent;}
+  .btn-ghost:hover{background:var(--surface-2);}
+  .btn-sm{padding:6px 11px; font-size:12.5px;}
+  .btn-sm svg, .btn-ghost svg{background:none; padding:0; margin:0;}
+  .btn[disabled]{opacity:.5; cursor:not-allowed;}
+  .pill-static{
+    display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:var(--radius-pill);
+    background:var(--surface); border:1px solid var(--border); font-weight:700; font-size:13px; color:var(--text);
+  }
+  .custom-range{display:inline-flex; align-items:center; gap:6px;}
+  .custom-range .btn{padding:9px 10px; font-weight:600;}
+  .custom-range-dash{color:var(--text-3); font-weight:600;}
+
+  .demo-banner{
+    background:var(--status-pending-bg); color:var(--status-pending-fg);
+    border-radius:var(--radius-m); padding:11px 16px; font-size:12.5px; font-weight:500;
+    margin-bottom:20px; display:flex; align-items:center; gap:9px; border:1px solid color-mix(in srgb, var(--status-pending-fg) 25%, transparent);
+  }
+  .demo-banner svg{width:18px; height:18px;}
+  .row-title svg, .row-sub svg, td svg, .hint svg{width:12px; height:12px; vertical-align:-1px; opacity:.7;}
+
+  /* ---------- KPI ---------- */
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px; margin-bottom:22px;}
+  .kpi-tile{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-l);
+    padding:18px 19px; box-shadow:var(--shadow-1);
+  }
+  .kpi-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+  .kpi-icon{
+    width:34px; height:34px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--accent-soft); color:var(--accent);
+  }
+  .kpi-icon svg{width:16px; height:16px;}
+  .kpi-icon.dark{background:var(--nav-active-bg); color:var(--nav-active-fg);}
+  .kpi-icon.blue{background:var(--accent); color:#fff;}
+  .kpi-icon.on-accent{background:rgba(255,255,255,.24); color:#fff;}
+  .kpi-label{font-size:12.5px; color:var(--text-2); font-weight:700;}
+  .kpi-row{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; margin-top:10px;}
+  .kpi-value{font-family:'IBM Plex Mono'; font-size:26px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-0.01em;}
+  .kpi-value.pos{color:var(--status-good-fg);}
+  .kpi-value.neg{color:var(--status-bad-fg);}
+  .kpi-note{font-size:12px; color:var(--text-3); margin-top:8px;}
+  .change-pill{
+    display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:var(--radius-pill);
+    font-size:11px; font-weight:700; white-space:nowrap;
+  }
+  .change-pill.up{background:var(--status-good-bg); color:var(--status-good-fg);}
+  .change-pill.down{background:var(--status-bad-bg); color:var(--status-bad-fg);}
+  .change-pill.flat{background:var(--surface-3); color:var(--text-2);}
+
+  .kpi-tile.hero{
+    background:linear-gradient(135deg, var(--hero-grad-a), var(--hero-grad-b));
+    border:none; color:#fff;
+  }
+  .kpi-tile.hero .kpi-label{color:rgba(255,255,255,.8);}
+  .kpi-tile.hero .kpi-value{color:#fff;}
+  .kpi-tile.hero .kpi-note{color:rgba(255,255,255,.72);}
+  .kpi-tile.hero .change-pill{background:rgba(255,255,255,.24); color:#fff;}
+
+  .panel{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-l);
+    padding:20px 22px; box-shadow:var(--shadow-1); margin-bottom:20px;
+    min-width:0;
+  }
+  .panel-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap;}
+  .panel-head h2{font-size:15.5px; font-weight:700;}
+  .panel-head .sub{font-size:12px; color:var(--text-3); margin-top:2px;}
+
+  .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:20px; align-items:start;}
+  @media (max-width:980px){ .two-col{grid-template-columns:1fr;} }
+
+  .two-col-even{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;}
+  @media (max-width:980px){ .two-col-even{grid-template-columns:1fr;} }
+
+  /* ---------- Lists / rows ---------- */
+  .row-list{display:flex; flex-direction:column;}
+  .row-list-scroll{max-height:520px; overflow-y:auto; padding-right:4px;}
+  .row-item{
+    display:flex; align-items:center; gap:12px; padding:11px 4px;
+    border-top:1px solid var(--border-soft);
+  }
+  .row-item:first-child{border-top:none;}
+  .row-avatar{
+    width:34px; height:34px; border-radius:9px; flex:0 0 auto;
+    background:var(--surface-3); color:var(--text-2);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;
+  }
+  .row-main{min-width:0; flex:1;}
+  .row-title{font-weight:600; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row-sub{font-size:12px; color:var(--text-3); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row-end{flex:0 0 auto; text-align:right;}
+  .empty-note{color:var(--text-3); font-size:13px; padding:18px 4px; text-align:center;}
+
+  /* ---------- Badges / chips ---------- */
+  .pill{
+    display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px;
+    font-size:11.5px; font-weight:700; white-space:nowrap;
+  }
+  .pill-good{background:var(--status-good-bg); color:var(--status-good-fg);}
+  .pill-pending{background:var(--status-pending-bg); color:var(--status-pending-fg);}
+  .pill-bad{background:var(--status-bad-bg); color:var(--status-bad-fg);}
+  .pill-neutral{background:var(--surface-3); color:var(--text-2);}
+  .cleaner-chip{
+    display:inline-flex; align-items:center; gap:5px; padding:2px 8px 2px 5px; border-radius:100px;
+    background:var(--surface-2); font-size:11.5px; font-weight:600; color:var(--text-2); border:1px solid var(--border-soft);
+  }
+  .cleaner-dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
+
+  /* ---------- Forms ---------- */
+  .field{display:flex; flex-direction:column; gap:5px; margin-bottom:13px; min-width:0;}
+  .field label{font-size:12px; font-weight:600; color:var(--text-2);}
+  .field .hint{font-size:11px; color:var(--text-3); font-weight:400;}
+  .field input[type="text"], .field input[type="number"], .field input[type="tel"],
+  .field input[type="date"], .field input[type="time"], .field input[type="password"], .field select, .field textarea{
+    border:1px solid var(--border); background:var(--bg); color:var(--text);
+    border-radius:12px; padding:9px 12px; width:100%;
+  }
+  .field textarea{resize:vertical; min-height:56px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .checkline{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500;}
+  .form-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-soft);}
+  .form-error{color:var(--status-bad-fg); font-size:12px; margin-top:-4px; margin-bottom:10px;}
+  .chip-select{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip-toggle{
+    padding:6px 11px; border-radius:100px; border:1px solid var(--border); background:var(--surface);
+    font-size:12.5px; font-weight:600; display:inline-flex; align-items:center; gap:6px;
+  }
+  .chip-toggle.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong);}
+
+  /* ---------- Table ---------- */
+  .table-wrap{overflow-x:auto;}
+  table{border-collapse:collapse; width:100%; min-width:520px;}
+  th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-3);
+    font-weight:700; padding:8px 10px; border-bottom:1px solid var(--border);
+  }
+  td{padding:10px 10px; border-bottom:1px solid var(--border-soft); font-size:13px; vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  td.num, th.num{text-align:right;}
+
+  /* ---------- Search ---------- */
+  .search-box{position:relative; max-width:320px; flex:1;}
+  .search-box input{
+    width:100%; padding:9px 14px 9px 35px; border-radius:var(--radius-pill); border:1px solid var(--border);
+    background:var(--surface); color:var(--text);
+  }
+  .search-box svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-3);}
+
+  /* ---------- Client cards ---------- */
+  .client-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(258px,1fr)); gap:12px;}
+  .client-card{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-m);
+    padding:15px; box-shadow:var(--shadow-1); display:flex; flex-direction:column; gap:9px; text-align:left;
+    width:100%;
+  }
+  .client-card:hover{border-color:var(--accent);}
+  .client-card-top{display:flex; align-items:center; gap:10px;}
+  .client-card .ltv{margin-top:auto; display:flex; justify-content:space-between; align-items:baseline; padding-top:9px; border-top:1px solid var(--border-soft);}
+  .client-card .ltv b{font-family:'IBM Plex Mono'; font-size:15px;}
+
+  /* ---------- Calendar ---------- */
+  .cal-nav{display:flex; align-items:center; gap:10px;}
+  .cal-nav .label{font-weight:700; font-size:14.5px; min-width:150px; text-align:center; text-transform:capitalize;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-dow{font-size:11px; font-weight:700; color:var(--text-3); text-align:center; padding-bottom:4px; text-transform:uppercase;}
+  .cal-cell{
+    min-height:92px; min-width:0; border:1px solid var(--border-soft); border-radius:10px; padding:6px 6px 7px;
+    display:flex; flex-direction:column; gap:3px; background:var(--surface); text-align:left; width:100%;
+  }
+  .cal-cell:hover{border-color:var(--accent);}
+  .cal-cell.muted{opacity:.42;}
+  .cal-cell.today{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset;}
+  .cal-daynum{font-size:12px; font-weight:700; color:var(--text-2);}
+  .cal-cell.today .cal-daynum{color:var(--accent-strong);}
+  .cal-chip{
+    font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:6px; background:var(--accent-soft); color:var(--accent-strong);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left;
+  }
+  .cal-chip.done{background:var(--status-good-bg); color:var(--status-good-fg);}
+  .cal-chip.cancel{background:var(--status-bad-bg); color:var(--status-bad-fg); text-decoration:line-through;}
+  .cal-more{font-size:10.5px; color:var(--text-3); font-weight:600;}
+  .cal-chip-list{display:flex; flex-direction:column; gap:3px;}
+  .cal-dot-list{display:none; flex-wrap:wrap; align-items:center; gap:3px; margin-top:auto;}
+  .cal-dot{width:6px; height:6px; border-radius:50%; flex:0 0 auto; background:var(--accent-strong);}
+  .cal-dot.done{background:var(--status-good-fg);}
+  .cal-dot.cancel{background:var(--status-bad-fg); opacity:.6;}
+  .cal-dot-more{font-size:8.5px; font-weight:700; color:var(--text-3);}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,18,15,.5); backdrop-filter:blur(2px);
+    display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; z-index:100; overflow-y:auto;
+  }
+  .modal{
+    background:var(--surface); border-radius:var(--radius-l); box-shadow:var(--shadow-2);
+    width:100%; max-width:520px; padding:22px 24px 24px; margin-bottom:5vh;
+  }
+  .modal.wide{max-width:680px;}
+  .modal-head{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; gap:10px;}
+  .modal-head h3{font-size:16.5px; font-weight:800;}
+  .modal-close{background:none; border:none; color:var(--text-3); padding:4px; border-radius:7px;}
+  .modal-close:hover{background:var(--surface-2); color:var(--text);}
+
+  /* ---------- Photos ---------- */
+  .photo-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(92px,1fr)); gap:8px;}
+  .photo-thumb{position:relative; border-radius:9px; overflow:hidden; aspect-ratio:1; background:var(--surface-2); border:1px solid var(--border-soft);}
+  .photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-thumb .del{
+    position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:6px;
+    background:rgba(10,18,15,.6); color:#fff; border:none; display:flex; align-items:center; justify-content:center;
+  }
+  .photo-add{
+    aspect-ratio:1; border-radius:9px; border:1.5px dashed var(--border); background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center; color:var(--text-3); flex-direction:column; gap:3px; font-size:10.5px; font-weight:600;
+  }
+  .photo-add:hover{border-color:var(--accent); color:var(--accent);}
+  .lightbox{position:fixed; inset:0; background:rgba(6,12,10,.86); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px;}
+  .lightbox img{max-width:100%; max-height:100%; border-radius:10px; box-shadow:var(--shadow-2);}
+  .lightbox .modal-close{position:absolute; top:18px; right:18px; background:rgba(255,255,255,.12); color:#fff;}
+
+  /* ---------- Detail drawer bits ---------- */
+  .detail-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:16px;}
+  .detail-item .k{font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+  .detail-item .v{font-size:13.5px; margin-top:2px; font-weight:500;}
+  .section-title{font-size:12.5px; font-weight:700; color:var(--text-2); margin:18px 0 9px; display:flex; align-items:center; justify-content:space-between;}
+
+  /* ---------- Chart ---------- */
+  .legend{display:flex; gap:16px; font-size:12px; color:var(--text-2); font-weight:600; margin-bottom:10px; flex-wrap:wrap;}
+  .chart-scroll{overflow-x:auto;}
+  .chart-svg{width:100%; height:auto; min-width:420px; display:block;}
+  .legend-item{display:flex; align-items:center; gap:6px;}
+  .legend-swatch{width:9px; height:9px; border-radius:2.5px;}
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(8px); opacity:0; pointer-events:none;
+    background:var(--text); color:var(--bg); padding:10px 18px; border-radius:10px; font-size:13px; font-weight:600;
+    box-shadow:var(--shadow-2); z-index:300; transition:opacity .18s ease, transform .18s ease;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto;}
+
+  @media (max-width:820px){
+    #app{padding:10px;}
+    .shell{border-radius:20px; padding:10px 10px 18px;}
+    .nav-links{display:none;}
+    /* Brand can now shrink and ellipsize instead of forcing the navbar
+       (logo + name + bell/gear/profile) wider than very narrow phones. */
+    .brand{flex:1 1 auto; min-width:0;}
+    .brand-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+    .navbar{padding:7px;}
+    .page{padding:2px 4px 78px;}
+    .mobile-nav{
+      display:flex; position:fixed; left:12px; right:12px; bottom:12px; z-index:50;
+      background:var(--surface); border-radius:var(--radius-pill); box-shadow:var(--shadow-2);
+      padding:6px; justify-content:space-around;
+    }
+    .mobile-nav .nav-item{flex-direction:column; gap:2px; padding:7px 4px; font-size:9.5px; flex:1; text-align:center; justify-content:center;}
+    .mobile-nav .nav-item svg{width:18px; height:18px;}
+    .two-col{grid-template-columns:1fr;}
+    .two-col-even{grid-template-columns:1fr;}
+    .detail-grid{grid-template-columns:1fr;}
+
+    /* Panels/cards: less padding so content has more room to breathe. */
+    .panel{padding:14px 12px;}
+    .kpi-tile{padding:14px 15px;}
+
+
+    /* Calendar: shrink cells/gaps so 7 columns fit narrow screens, and swap
+       the per-order text chips (unreadable at this width) for small dots —
+       tapping the day still opens the full list in a modal. */
+    .cal-grid{gap:4px;}
+    .cal-cell{min-height:50px; padding:4px 3px 5px; border-radius:8px; gap:2px;}
+    .cal-daynum{font-size:10.5px;}
+    .cal-chip-list{display:none;}
+    .cal-dot-list{display:flex;}
+    .cal-dow{font-size:9.5px; padding-bottom:2px;}
+    .cal-nav .label{min-width:0; font-size:13px;}
+
+    /* Forms: stack paired fields instead of squeezing two inputs side by side. */
+    .field-row{grid-template-columns:1fr;}
+    .modal{padding:18px 16px 20px;}
+    .modal-overlay{padding:5vh 10px;}
+
+    /* Row lists (finances) shouldn't reserve a huge fixed scroll height on phones. */
+    .row-list-scroll{max-height:400px;}
+
+    /* Custom period range: native date inputs have a wide intrinsic minimum
+       width, so let the pair wrap onto their own lines on narrow phones
+       instead of forcing the topbar wider than the screen. */
+    .custom-range{flex-wrap:wrap; width:100%; gap:6px;}
+    .custom-range input[type="date"]{flex:1 1 auto; min-width:0; width:100%;}
+    .custom-range-dash{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+
+<div id="app"></div>
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCJctdf-PYyyLZjrQqErAN67tpum8Tng6Q",
+  authDomain: "vodaclean-c9a4f.firebaseapp.com",
+  projectId: "vodaclean-c9a4f",
+  storageBucket: "vodaclean-c9a4f.firebasestorage.app",
+  messagingSenderId: "493795722145",
+  appId: "1:493795722145:web:3a5ce7e9a8effb7a9e01e0",
+};
+
+/* =========================================================================
+   Клининг-сервис Вода — CRM для клининговой компании
+   ========================================================================= */
+
+const LOGO_ICON_URI = "data:image/png;base64,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";
+const ICONS = {
+  dashboard:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>`,
+  clients:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.3 20c0-3.5 2.6-6.1 5.7-6.1s5.7 2.6 5.7 6.1"/><circle cx="17" cy="9.2" r="2.5"/><path d="M14.9 20c.2-2.8 2-4.7 4.2-5"/></svg>`,
+  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>`,
+  cleaners:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.3 20c0-3.6 2.5-6.2 5.7-6.2s5.7 2.6 5.7 6.2"/><path d="M15.5 13.7l1.9 1.9 3.4-3.9"/></svg>`,
+  finances:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/><circle cx="16.3" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  search:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="20.5" y2="20.5"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.7A1.5 1.5 0 0 1 10.5 3.2h3A1.5 1.5 0 0 1 15 4.7V7"/><path d="M6 7l1 13.3A1.5 1.5 0 0 0 8.5 21.8h7a1.5 1.5 0 0 0 1.5-1.5L18 7"/></svg>`,
+  x:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>`,
+  camera:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7l1.4-2.6h5.2L16 7"/><circle cx="12" cy="13.5" r="3.6"/></svg>`,
+  chevronLeft:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5l-7 7 7 7"/></svg>`,
+  chevronRight:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5l7 7-7 7"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l.8-3.8 10-10 3 3-10 10L4 20z"/><path d="M13.7 6.3l3 3"/></svg>`,
+  repeat:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.2M20 12a8 8 0 0 1-14 5.2"/><path d="M18 3.8v3h-3M6 20.2v-3h3"/></svg>`,
+  clock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>`,
+  info:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="8" r="0.2" fill="currentColor"/></svg>`,
+  bell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 16c.6-1 1-2.5 1-4.6C6.5 7.7 8.8 5 12 5s5.5 2.7 5.5 6.4c0 2.1.4 3.6 1 4.6a1 1 0 0 1-.9 1.5H6.4a1 1 0 0 1-.9-1.5z"/><path d="M9.5 19.5a2.6 2.6 0 0 0 5 0"/></svg>`,
+  gear:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 4v2.1M12 17.9V20M4 12h2.1M17.9 12H20M6.3 6.3l1.5 1.5M16.2 16.2l1.5 1.5M6.3 17.7l1.5-1.5M16.2 7.8l1.5-1.5"/></svg>`,
+  trendUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l6-6 4 4 6-8"/><path d="M15 6h5v5"/></svg>`,
+  moon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.7A8.5 8.5 0 1 1 9.3 3.5a7 7 0 0 0 11.2 11.2z"/></svg>`,
+  logout:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15.5 16l4-4-4-4"/><path d="M19 12H9"/></svg>`,
+};
+
+const CLEANER_COLORS = ['#2a78d6','#eb6834','#1baf7a','#c9862a','#e87ba4','#7a6ae0','#3f9a3f','#e0625f'];
+const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const RU_MONTHS_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const RU_DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const EXPENSE_CATEGORIES = ['Химия и расходники','Зарплата клинерам','Транспорт','Аренда/офис','Реклама','Инвентарь и техника','Прочее'];
+
+/* ---------------- theme ---------------- */
+const THEME_KEY = 'cs-voda-theme';
+function getEffectiveTheme(){
+  const attr = document.documentElement.getAttribute('data-theme');
+  if(attr==='dark' || attr==='light') return attr;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+}
+function toggleTheme(){
+  applyTheme(getEffectiveTheme()==='dark' ? 'light' : 'dark');
+  render();
+}
+(function restoreTheme(){
+  try{
+    const saved = localStorage.getItem(THEME_KEY);
+    if(saved==='dark' || saved==='light') document.documentElement.setAttribute('data-theme', saved);
+  }catch(e){}
+})();
+
+/* ---------------- utils ---------------- */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uid(prefix){ return (prefix||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function todayISO(){ return toISO(new Date()); }
+function toISO(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function parseISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); }
+function formatMoney(n){ n = Number(n)||0; return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(n)+' ₽'; }
+function formatDateLong(s){ if(!s) return '—'; const d=parseISO(s); return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function formatDateShort(s){ if(!s) return '—'; const d=parseISO(s); return `${d.getDate()} ${RU_MONTHS[d.getMonth()].slice(0,3)}`; }
+function formatDateWithDow(s){ if(!s) return '—'; const d=parseISO(s); const dow = RU_DOW[(d.getDay()+6)%7]; return `${dow}, ${d.getDate()} ${RU_MONTHS[d.getMonth()]}`; }
+function initials(name){ const p=(name||'?').trim().split(/\s+/); return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase() || '?'; }
+function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+function addInterval(dateStr, type){
+  const d = parseISO(dateStr);
+  if(type==='weekly') d.setDate(d.getDate()+7);
+  else if(type==='biweekly') d.setDate(d.getDate()+14);
+  else if(type==='monthly') d.setMonth(d.getMonth()+1);
+  else if(type==='every4weeks') d.setDate(d.getDate()+28);
+  return toISO(d);
+}
+function recurrenceLabel(type){
+  return {weekly:'Раз в неделю', biweekly:'Раз в 2 недели', monthly:'Раз в месяц', every4weeks:'Раз в 4 недели', none:'Без повтора'}[type] || '';
+}
+function statusLabel(s){ return {scheduled:'Запланирован', completed:'Выполнен', cancelled:'Отменён'}[s] || s; }
+function statusPillClass(s){ return {scheduled:'pill-pending', completed:'pill-good', cancelled:'pill-bad'}[s] || 'pill-neutral'; }
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+/* ---------------- store (db capability with in-memory demo fallback) ---------------- */
+let DB = null;
+let DEMO = false;
+const local = { clients:[], cleaners:[], orders:[], expenses:[] };
+const localSub = { clients:[], cleaners:[], orders:[], expenses:[] };
+const localPhotos = {}; // clientId -> [{id,dataUrl,caption,addedAt}]
+
+function notifyLocal(col){ (localSub[col]||[]).forEach(fn=>fn(local[col].slice())); }
+
+function subscribeCollection(col, cb){
+  if(DB){
+    return DB.collection(col).onSnapshot(
+      snap => cb(snap.docs.map(d=>({id:d.id, ...d.data()}))),
+      err => console.error('onSnapshot', col, err)
+    );
+  }
+  localSub[col].push(cb);
+  cb(local[col].slice());
+  return () => { localSub[col] = localSub[col].filter(f=>f!==cb); };
+}
+async function addDoc(col, data){
+  if(DB){ const ref = await DB.collection(col).add(data); return ref.id; }
+  const id = uid(col);
+  local[col].push({id, ...data});
+  notifyLocal(col);
+  return id;
+}
+async function updateDocById(col, id, data){
+  if(DB){ await DB.doc(col+'/'+id).update(data); return; }
+  const item = local[col].find(x=>x.id===id);
+  if(item) Object.assign(item, data);
+  notifyLocal(col);
+}
+async function deleteDocById(col, id){
+  if(DB){ await DB.doc(col+'/'+id).delete(); return; }
+  local[col] = local[col].filter(x=>x.id!==id);
+  notifyLocal(col);
+}
+async function addPhoto(clientId, photo){
+  const col = `clients/${clientId}/photos`;
+  if(DB){ const ref = await DB.collection(col).add(photo); return ref.id; }
+  const id = uid('photo');
+  localPhotos[clientId] = localPhotos[clientId]||[];
+  localPhotos[clientId].unshift({id, ...photo});
+  return id;
+}
+async function getPhotos(clientId){
+  const col = `clients/${clientId}/photos`;
+  if(DB){
+    const snap = await DB.collection(col).get();
+    return snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+  }
+  return (localPhotos[clientId]||[]).slice();
+}
+async function deletePhoto(clientId, photoId){
+  const col = `clients/${clientId}/photos`;
+  if(DB){ await DB.doc(col+'/'+photoId).delete(); return; }
+  localPhotos[clientId] = (localPhotos[clientId]||[]).filter(p=>p.id!==photoId);
+}
+
+/* ---------------- app state ---------------- */
+const state = {
+  view: 'schedule',
+  clients: [], cleaners: [], orders: [], expenses: [],
+  clientSearch: '',
+  dashPeriod: 'month',
+  dashCustomFrom: monthBounds(new Date().getFullYear(), new Date().getMonth())[0],
+  dashCustomTo: todayISO(),
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+  financePeriod: 'month',
+  financeCustomFrom: monthBounds(new Date().getFullYear(), new Date().getMonth())[0],
+  financeCustomTo: todayISO(),
+  modal: null, // {type:'clientDetail'|'clientForm'|'orderForm'|'day'|'cleanerForm'|'expenseForm', ...}
+  loadedFlags: {clients:false, cleaners:false, orders:false, expenses:false},
+};
+function isFullyLoaded(){ return DEMO || Object.values(state.loadedFlags).every(Boolean); }
+let activeCleanerSet = new Set(); // used by order form modal
+let currentPhotosClientId = null;
+let currentPhotosCache = [];
+
+/* ---------------- derived data ---------------- */
+function clientById(id){ return state.clients.find(c=>c.id===id); }
+function cleanerById(id){ return state.cleaners.find(c=>c.id===id); }
+function ordersForClient(clientId){
+  return state.orders.filter(o=>o.clientId===clientId).sort((a,b)=> (b.date+ (b.time||'')).localeCompare(a.date+(a.time||'')));
+}
+function clientLTV(clientId){
+  return state.orders.filter(o=>o.clientId===clientId && o.status==='completed').reduce((s,o)=>s+(Number(o.amount)||0),0);
+}
+function clientLastOrder(clientId){
+  const list = ordersForClient(clientId).filter(o=>o.status!=='cancelled');
+  return list[0] || null;
+}
+function monthBounds(year, month){
+  const from = `${year}-${String(month+1).padStart(2,'0')}-01`;
+  const lastDay = new Date(year, month+1, 0).getDate();
+  const to = `${year}-${String(month+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  return [from, to];
+}
+function incomeInRange(from, to){
+  return state.orders.filter(o=>o.status==='completed' && o.date>=from && o.date<=to).reduce((s,o)=>s+(Number(o.amount)||0),0);
+}
+function expensesInRange(from, to){
+  return state.expenses.filter(e=>e.date>=from && e.date<=to).reduce((s,e)=>s+(Number(e.amount)||0),0);
+}
+function upcomingOrders(days){
+  const from = todayISO();
+  const toD = new Date(); toD.setDate(toD.getDate()+days);
+  const to = toISO(toD);
+  return state.orders
+    .filter(o=>o.status==='scheduled' && o.date>=from && o.date<=to)
+    .sort((a,b)=> (a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+}
+function ordersOnDate(dateStr){
+  return state.orders.filter(o=>o.date===dateStr).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+}
+function completedOrdersInRange(from, to){
+  return state.orders.filter(o=>o.status==='completed' && o.date>=from && o.date<=to);
+}
+function newClientsInRange(from, to){
+  return state.clients.filter(c=>c.createdAt && c.createdAt>=from && c.createdAt<=to).length;
+}
+/* period presets for the dashboard's / finances' period switcher */
+function periodBounds(period, customFrom, customTo){
+  const now = new Date();
+  if(period==='prevMonth'){
+    const m = now.getMonth()===0 ? 11 : now.getMonth()-1;
+    const y = now.getMonth()===0 ? now.getFullYear()-1 : now.getFullYear();
+    const [f,t] = monthBounds(y,m);
+    const m2 = m===0?11:m-1, y2 = m===0?y-1:y;
+    const [f2,t2] = monthBounds(y2,m2);
+    return {from:f, to:t, prevFrom:f2, prevTo:t2, label:'за прошлый месяц', pillLabel:'Прошлый месяц'};
+  }
+  if(period==='year'){
+    const f = `${now.getFullYear()}-01-01`, t = `${now.getFullYear()}-12-31`;
+    const f2 = `${now.getFullYear()-1}-01-01`, t2 = `${now.getFullYear()-1}-12-31`;
+    return {from:f, to:t, prevFrom:f2, prevTo:t2, label:'за этот год', pillLabel:'Этот год'};
+  }
+  if(period==='prevYear'){
+    const y = now.getFullYear()-1;
+    const f = `${y}-01-01`, t = `${y}-12-31`;
+    const f2 = `${y-1}-01-01`, t2 = `${y-1}-12-31`;
+    return {from:f, to:t, prevFrom:f2, prevTo:t2, label:'за прошлый год', pillLabel:'Прошлый год'};
+  }
+  if(period==='custom'){
+    const rawF = customFrom || todayISO(), rawT = customTo || todayISO();
+    const f = rawF <= rawT ? rawF : rawT, t = rawF <= rawT ? rawT : rawF;
+    const days = Math.round((parseISO(t) - parseISO(f)) / 86400000) + 1;
+    const prevTo = toISO(new Date(parseISO(f).getTime() - 86400000));
+    const prevFrom = toISO(new Date(parseISO(f).getTime() - days*86400000));
+    return {from:f, to:t, prevFrom, prevTo, label:'за выбранный период', pillLabel:'Свой период'};
+  }
+  const [f,t] = monthBounds(now.getFullYear(), now.getMonth());
+  const pm = now.getMonth()===0 ? 11 : now.getMonth()-1;
+  const py = now.getMonth()===0 ? now.getFullYear()-1 : now.getFullYear();
+  const [f2,t2] = monthBounds(py,pm);
+  return {from:f, to:t, prevFrom:f2, prevTo:t2, label:'за этот месяц', pillLabel:'Этот месяц'};
+}
+function monthsInRange(from, to, cap){
+  const f = parseISO(from), t = parseISO(to);
+  const months = [];
+  let y = f.getFullYear(), m = f.getMonth();
+  const endY = t.getFullYear(), endM = t.getMonth();
+  while((y < endY || (y===endY && m<=endM)) && months.length < (cap||36)){
+    months.push({year:y, month:m});
+    m++; if(m>11){ m=0; y++; }
+  }
+  return months;
+}
+/* shared period-picker control used by both the dashboard and finances topbars */
+function periodPickerHtml(period, customFrom, customTo, keyPeriod, keyFrom, keyTo){
+  const opts = [
+    ['month','Этот месяц'], ['prevMonth','Прошлый месяц'],
+    ['year','Этот год'], ['prevYear','Прошлый год'],
+    ['custom','Свой период'],
+  ];
+  return `
+    <div class="pill-static" style="padding:9px 14px;">
+      <select aria-label="Период" onchange="state.${keyPeriod}=this.value; render();" style="border:none; background:transparent; font-weight:700; padding:0; cursor:pointer; appearance:none;">
+        ${opts.map(([v,l])=>`<option value="${v}" ${period===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+      ${ICONS.chevronRight.replace('viewBox="0 0 24 24"', 'viewBox="0 0 24 24" style="transform:rotate(90deg); width:12px; height:12px; opacity:.6;"')}
+    </div>
+    ${period==='custom' ? `
+    <div class="custom-range">
+      <input type="date" class="btn" aria-label="С" value="${customFrom||''}" onchange="state.${keyFrom}=this.value; render();">
+      <span class="custom-range-dash">—</span>
+      <input type="date" class="btn" aria-label="По" value="${customTo||''}" onchange="state.${keyTo}=this.value; render();">
+    </div>` : ''}
+  `;
+}
+function pctChange(cur, prev){
+  if(prev===0) return cur===0 ? 0 : null;
+  return ((cur-prev)/prev)*100;
+}
+function changePillHtml(pct){
+  if(pct===null) return `<span class="change-pill flat">н/д</span>`;
+  const dir = pct>0.05?'up':(pct<-0.05?'down':'flat');
+  const arrow = dir==='up'?'↑':(dir==='down'?'↓':'·');
+  return `<span class="change-pill ${dir}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+}
+function cssVar(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function hexInterp(hexA, hexB, t){
+  const a = [1,3,5].map(i=>parseInt(hexA.slice(i,i+2),16));
+  const b = [1,3,5].map(i=>parseInt(hexB.slice(i,i+2),16));
+  const c = a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+  return '#'+c.map(v=>clamp(v,0,255).toString(16).padStart(2,'0')).join('');
+}
+
+/* ---------------- auth ---------------- */
+let currentUser = null;
+let dataSubscribed = false;
+
+function startDataSubscriptions(){
+  if(dataSubscribed) return;
+  dataSubscribed = true;
+  subscribeCollection('clients', list => { state.clients = list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')); state.loadedFlags.clients=true; render(); });
+  subscribeCollection('cleaners', list => { state.cleaners = list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')); state.loadedFlags.cleaners=true; render(); });
+  subscribeCollection('orders', list => { state.orders = list; state.loadedFlags.orders=true; render(); });
+  subscribeCollection('expenses', list => { state.expenses = list.sort((a,b)=> b.date.localeCompare(a.date)); state.loadedFlags.expenses=true; render(); });
+}
+function renderLogin(errorMsg){
+  document.getElementById('modalRoot').innerHTML = '';
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center;">
+      <form onsubmit="return doLogin(event)" style="background:var(--surface); padding:28px 26px; border-radius:var(--radius-l); box-shadow:var(--shadow-2); width:100%; max-width:340px;">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:18px;">
+          <div class="brand-mark"><img src="${LOGO_ICON_URI}" alt="Вода"></div>
+          <div class="brand-name">Клининг-сервис Вода</div>
+        </div>
+        <div class="field"><label>Email</label><input type="text" id="login_email" autocomplete="username" required></div>
+        <div class="field"><label>Пароль</label><input type="password" id="login_password" autocomplete="current-password" required></div>
+        ${errorMsg ? `<div class="form-error">${esc(errorMsg)}</div>` : ''}
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:4px;">Войти</button>
+      </form>
+    </div>`;
+}
+async function doLogin(ev){
+  ev.preventDefault();
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  try{
+    await firebase.auth().signInWithEmailAndPassword(email, password);
+  }catch(e){
+    renderLogin('Неверный email или пароль');
+  }
+  return false;
+}
+function logout(){
+  firebase.auth().signOut().then(()=>location.reload());
+}
+
+/* ---------------- init ---------------- */
+async function initApp(){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    DB = firebase.firestore();
+  }catch(e){ console.error('Firebase init failed', e); DB = null; }
+  DEMO = !DB;
+
+  if(DEMO){
+    seedDemoData();
+    startDataSubscriptions();
+    render();
+    return;
+  }
+
+  firebase.auth().onAuthStateChanged(user => {
+    currentUser = user;
+    if(user){
+      startDataSubscriptions();
+      render();
+    }else{
+      renderLogin();
+    }
+  });
+}
+
+function seedDemoData(){
+  const y0 = new Date().getFullYear(), m0 = new Date().getMonth();
+  const dm = (monthOffset, day) => toISO(new Date(y0, m0+monthOffset, day));
+  const today = todayISO();
+
+  /* ---- clients ---- */
+  const clientDefs = [
+    {name:'Ирина Соколова', phone:'+7 912 000-11-22', address:'ул. Малышева, 12, кв. 45', notes:'Домашние животные — кот. Ключи у консьержа.', created:dm(-8,12)},
+    {name:'ООО «Бриз», офис', phone:'+7 343 555-01-01', address:'пр. Ленина, 50, офис 310', notes:'Уборка после 19:00, есть пропускная система.', created:dm(-8,20)},
+    {name:'Марат Валиев', phone:'+7 908 222-33-44', address:'ул. Восточная, 7а', notes:'', created:dm(-7,15)},
+    {name:'Светлана Панова', phone:'+7 900 777-88-99', address:'ул. Крауля, 3, кв. 12', notes:'Аллергия на хлорку — только гипоаллергенная химия.', created:dm(-6,9)},
+    {name:'ИП Кузьмина Т.А., салон красоты', phone:'+7 343 214-56-78', address:'ул. Радищева, 28', notes:'Уборка рано утром, до открытия в 10:00.', created:dm(-6,24)},
+    {name:'Егор Пивоваров', phone:'+7 905 333-22-11', address:'ул. Сурикова, 31, кв. 9', notes:'', created:dm(-5,11)},
+    {name:'ООО «Стройинвест», офис', phone:'+7 343 777-90-00', address:'ул. 8 Марта, 51, офис 812', notes:'Пропуск на ресепшене, звонить за 30 минут.', created:dm(-4,7)},
+    {name:'Наталья Гриценко', phone:'+7 909 111-44-55', address:'ул. Готвальда, 15, кв. 63', notes:'Двое детей, убирать днём, пока никого нет дома.', created:dm(-3,18)},
+    {name:'Коворкинг «Плюс»', phone:'+7 343 555-67-89', address:'пр. Космонавтов, 8', notes:'Санузлы и кухня — каждый визит, полы — по графику.', created:dm(-2,5)},
+    {name:'Алексей Фомин', phone:'+7 900 456-12-34', address:'ул. Щорса, 96, кв. 140', notes:'Генеральная уборка после ремонта.', created:dm(0,2)},
+  ];
+  const clientIds = clientDefs.map(()=>uid('c'));
+  local.clients = clientDefs.map((c,i)=>({id:clientIds[i], name:c.name, phone:c.phone, address:c.address, notes:c.notes, createdAt:c.created}));
+  const [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10] = clientIds;
+
+  /* ---- cleaners ---- */
+  const cleanerDefs = [
+    {name:'Анна Кузнецова', phone:'+7 902 111-22-33'},
+    {name:'Дмитрий Орлов', phone:'+7 903 444-55-66'},
+    {name:'Юлия Смирнова', phone:'+7 904 777-11-00'},
+    {name:'Ольга Реброва', phone:'+7 906 222-88-99'},
+    {name:'Максим Ткачёв', phone:'+7 908 555-33-11'},
+  ];
+  const cleanerIds = cleanerDefs.map(()=>uid('k'));
+  local.cleaners = cleanerDefs.map((c,i)=>({id:cleanerIds[i], name:c.name, phone:c.phone, color:CLEANER_COLORS[i], active:true}));
+  const [k1,k2,k3,k4,k5] = cleanerIds;
+  const clName = id => (local.clients.find(c=>c.id===id)||{}).name || '';
+  const cName = id => (local.cleaners.find(c=>c.id===id)||{}).name || '';
+
+  /* ---- orders ---- */
+  const orders = [];
+  function addOrder({clientId, date, time, amount, cleaners, status, service='', notes='', seriesId=null, recurrenceType='none'}){
+    orders.push({
+      id: uid('o'), clientId, clientName: clName(clientId), date, time, amount,
+      cleanerIds: cleaners, cleanerNames: cleaners.map(cName),
+      status, service, notes, seriesId, recurrenceType, createdAt: date,
+    });
+  }
+
+  // Recurring series — generated from 8 months ago through a few weeks ahead;
+  // anything before today is completed, anything from today on is scheduled.
+  const series = [
+    {clientId:c2, amount:5400, cleaners:[k2,k3], type:'weekly',   time:'19:30', anchorDay:3,  seriesId:'s_briz'},
+    {clientId:c9, amount:6100, cleaners:[k5],    type:'weekly',   time:'08:00', anchorDay:2,  seriesId:'s_kovork'},
+    {clientId:c5, amount:4800, cleaners:[k1],    type:'weekly',   time:'09:00', anchorDay:4,  seriesId:'s_salon'},
+    {clientId:c7, amount:7200, cleaners:[k2,k4], type:'biweekly', time:'18:00', anchorDay:6,  seriesId:'s_stroy'},
+    {clientId:c1, amount:3200, cleaners:[k1],    type:'biweekly', time:'11:00', anchorDay:5,  seriesId:'s_sokolova'},
+    {clientId:c8, amount:3400, cleaners:[k4],    type:'biweekly', time:'13:00', anchorDay:9,  seriesId:'s_gricenko'},
+    {clientId:c4, amount:2100, cleaners:[k3],    type:'monthly',  time:'09:00', anchorDay:1,  seriesId:'s_panova'},
+  ];
+  const scheduleCutoff = dm(1, 20);
+  series.forEach(s=>{
+    let date = dm(-5, s.anchorDay);
+    let guard = 0;
+    while(date <= scheduleCutoff && guard < 60){
+      guard++;
+      addOrder({clientId:s.clientId, date, time:s.time, amount:s.amount, cleaners:s.cleaners,
+        status: date < today ? 'completed' : 'scheduled', seriesId:s.seriesId, recurrenceType:s.type});
+      date = addInterval(date, s.type);
+    }
+  });
+
+  // One-off completed jobs for non-recurring apartment clients, spread across months.
+  [
+    {clientId:c3, mo:-7, day:22, amount:2600, cleaners:[k1], notes:'Уборка после ремонта'},
+    {clientId:c3, mo:-4, day:14, amount:2800, cleaners:[k2], notes:''},
+    {clientId:c3, mo:-1, day:19, amount:2700, cleaners:[k1], notes:''},
+    {clientId:c6, mo:-5, day:16, amount:2900, cleaners:[k3], notes:''},
+    {clientId:c6, mo:-3, day:21, amount:3000, cleaners:[k5], notes:''},
+    {clientId:c6, mo:-1, day:6,  amount:2900, cleaners:[k3], notes:''},
+    {clientId:c10,mo:-1, day:29, amount:4200, cleaners:[k2,k4], notes:'Генеральная уборка после ремонта'},
+  ].forEach(o=> addOrder({clientId:o.clientId, date:dm(o.mo,o.day), time:'12:00', amount:o.amount, cleaners:o.cleaners, status:'completed', notes:o.notes}));
+
+  // Upcoming one-off scheduled jobs, so "Ближайшие заказы" has variety beyond the series.
+  addOrder({clientId:c3,  date:dm(0,10), time:'10:00', amount:2700, cleaners:[k1], status:'scheduled', notes:''});
+  addOrder({clientId:c10, date:dm(0,16), time:'15:00', amount:3900, cleaners:[k4], status:'scheduled', notes:'Мытьё окон'});
+  addOrder({clientId:c6,  date:dm(0,21), time:'11:00', amount:3000, cleaners:[k3], status:'scheduled', notes:''});
+
+  // A couple of cancelled orders, for realism.
+  addOrder({clientId:c6, date:dm(-2,12), time:'14:00', amount:2900, cleaners:[k2], status:'cancelled', notes:'Клиент перенёс'});
+  addOrder({clientId:c8, date:dm(-1,23), time:'13:00', amount:3400, cleaners:[k4], status:'cancelled', notes:'Отмена из-за погоды'});
+
+  local.orders = orders;
+
+  /* ---- expenses, sized off each month's completed income for a healthy ~48-52% margin ---- */
+  const expenses = [];
+  function addExpense(date, category, amount, description){
+    if(date > today) return; // never book expenses in the future
+    expenses.push({id:uid('e'), date, category, amount:Math.max(300,Math.round(amount)), description});
+  }
+  function incomeForMonth(mo){
+    const [f,t] = monthBounds(y0, m0+mo);
+    return orders.filter(o=>o.status==='completed' && o.date>=f && o.date<=t).reduce((s,o)=>s+o.amount,0);
+  }
+  for(let mo=-8; mo<=0; mo++){
+    const inc = incomeForMonth(mo);
+    if(inc<=0) continue;
+    // Small variable costs scale with any completed work, however little.
+    addExpense(dm(mo,2), 'Химия и расходники', Math.max(300, inc*0.05), 'Средства для уборки, перчатки, тряпки');
+    addExpense(dm(mo,8), 'Транспорт',           Math.max(300, inc*0.035),'Бензин / такси до объектов');
+    // Fixed overhead (payroll, rent, ads) only kicks in once monthly volume is meaningful —
+    // avoids a lone early one-off job getting swallowed by a full month of fixed costs.
+    if(inc >= 15000){
+      addExpense(dm(mo,16), 'Зарплата клинерам',   inc*0.32, 'Оклад и премии клинерам за месяц');
+      addExpense(dm(mo,20), 'Реклама',             inc*0.03, 'Таргет в соцсетях');
+      if(mo%3===0) addExpense(dm(mo,24), 'Инвентарь и техника', inc*0.045, 'Пылесосы, парогенератор, расходники');
+      addExpense(dm(mo,27), 'Аренда/офис', 11000, 'Хранение инвентаря, склад');
+    }
+  }
+  local.expenses = expenses.sort((a,b)=> b.date.localeCompare(a.date));
+}
+
+/* ---------------- render shell ---------------- */
+const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm']);
+function render(){
+  // While a form modal is open, skip re-rendering so live updates from other
+  // viewers never overwrite text the user is mid-typing. Underlying state is
+  // still updated by the snapshot handlers; the view catches up once the
+  // modal closes (closeModal() calls render() again).
+  if(state.modal && FORM_MODAL_TYPES.has(state.modal.type)) return;
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="shell">
+      ${renderNavbar()}
+      <div class="page">
+        ${DEMO ? `<div class="demo-banner">${ICONS.info}<span>Демо-режим: показаны примерные данные, изменения не сохраняются между открытиями. Опубликованная страница на claude.ai хранит реальные данные автоматически.</span></div>` : ''}
+        ${isFullyLoaded() ? renderView() : renderLoading()}
+      </div>
+    </div>
+    ${renderMobileNav()}
+  `;
+  renderModal();
+}
+function setView(v){ state.view = v; state.modal=null; render(); }
+
+const NAV_ITEMS = [
+  ['dashboard','dashboard','Дашборд'],
+  ['schedule','calendar','Расписание'],
+  ['clients','clients','Клиенты'],
+  ['cleaners','cleaners','Клинеры'],
+  ['finances','finances','Финансы'],
+];
+function renderNavbar(){
+  return `
+  <div class="navbar">
+    <div class="brand">
+      <div class="brand-mark"><img src="${LOGO_ICON_URI}" alt="Вода"></div>
+      <div class="brand-name">Клининг-сервис Вода</div>
+    </div>
+    <div class="nav-links">
+      ${NAV_ITEMS.map(([id,icon,label])=>`
+        <button class="nav-item ${state.view===id?'active':''}" onclick="setView('${id}')">${ICONS[icon]}<span>${label}</span></button>
+      `).join('')}
+    </div>
+    <div class="navbar-side">
+      <button class="icon-btn" title="${getEffectiveTheme()==='dark'?'Светлая тема':'Тёмная тема'}" onclick="toggleTheme()">${getEffectiveTheme()==='dark'?ICONS.moon:ICONS.gear}</button>
+      ${!DEMO ? `<button class="icon-btn" title="Выйти" onclick="logout()">${ICONS.logout}</button>` : ''}
+    </div>
+  </div>`;
+}
+function renderMobileNav(){
+  return `
+  <div class="mobile-nav">
+    ${NAV_ITEMS.map(([id,icon,label])=>`
+      <button class="nav-item ${state.view===id?'active':''}" onclick="setView('${id}')">${ICONS[icon]}<span>${label}</span></button>
+    `).join('')}
+  </div>`;
+}
+
+function renderLoading(){
+  return `<div style="display:flex; align-items:center; justify-content:center; min-height:60vh; color:var(--text-3); font-size:13px; font-weight:600;">Загрузка данных…</div>`;
+}
+function renderView(){
+  switch(state.view){
+    case 'dashboard': return renderDashboard();
+    case 'schedule': return renderSchedule();
+    case 'clients': return renderClients();
+    case 'cleaners': return renderCleanersView();
+    case 'finances': return renderFinances();
+    default: return '';
+  }
+}
+
+/* ---------------- modal plumbing ---------------- */
+function openModal(m){ state.modal = m; renderModal(); }
+function closeModal(){ state.modal = null; render(); }
+function renderModal(){
+  const root = document.getElementById('modalRoot');
+  if(!state.modal){ root.innerHTML=''; return; }
+  let html = '';
+  if(state.modal.type==='clientForm') html = modalClientForm(state.modal.id);
+  else if(state.modal.type==='clientDetail') html = modalClientDetail(state.modal.id);
+  else if(state.modal.type==='orderForm') html = modalOrderForm(state.modal);
+  else if(state.modal.type==='day') html = modalDay(state.modal.date);
+  else if(state.modal.type==='cleanerForm') html = modalCleanerForm(state.modal.id);
+  else if(state.modal.type==='expenseForm') html = modalExpenseForm(state.modal.id);
+  else if(state.modal.type==='lightbox') html = modalLightbox(state.modal.src);
+  else if(state.modal.type==='confirmDeleteOrder') html = modalConfirmDeleteOrder(state.modal);
+  else if(state.modal.type==='confirmDeleteCleaner') html = modalConfirmDeleteCleaner(state.modal.id);
+  root.innerHTML = html;
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && state.modal) closeModal(); });
+
+/* =========================================================================
+   Дашборд
+   ========================================================================= */
+function renderDashboard(){
+  const p = periodBounds(state.dashPeriod, state.dashCustomFrom, state.dashCustomTo);
+  const income = incomeInRange(p.from, p.to);
+  const prevIncome = incomeInRange(p.prevFrom, p.prevTo);
+  const expenses = expensesInRange(p.from, p.to);
+  const prevExpenses = expensesInRange(p.prevFrom, p.prevTo);
+  const profit = income - expenses;
+  const prevProfit = prevIncome - prevExpenses;
+  const newClients = newClientsInRange(p.from, p.to);
+  const prevNewClients = newClientsInRange(p.prevFrom, p.prevTo);
+  const upcoming = upcomingOrders(7);
+  const incomeChange = pctChange(income, prevIncome);
+
+  return `
+    <div class="topbar">
+      <div>
+        <h1>Дашборд</h1>
+        <div class="sub">${formatDateWithDow(todayISO())} · сводка по компании</div>
+      </div>
+      <div class="topbar-actions">
+        ${periodPickerHtml(state.dashPeriod, state.dashCustomFrom, state.dashCustomTo, 'dashPeriod', 'dashCustomFrom', 'dashCustomTo')}
+        <button class="btn" onclick="setView('schedule')">${ICONS.calendar}Расписание</button>
+        <button class="btn btn-primary" onclick="openOrderForm()">${ICONS.plus}Новый заказ</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-tile hero">
+        <div class="kpi-top"><span class="kpi-label">Доход ${p.label}</span><span class="kpi-icon on-accent">${ICONS.finances}</span></div>
+        <div class="kpi-row"><span class="kpi-value">${formatMoney(income)}</span>${changePillHtml(incomeChange)}</div>
+        <div class="kpi-note">Пред. период: ${formatMoney(prevIncome)}</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-top"><span class="kpi-label">Расходы</span><span class="kpi-icon dark">${ICONS.trash}</span></div>
+        <div class="kpi-row"><span class="kpi-value">${formatMoney(expenses)}</span>${changePillHtml(pctChange(expenses, prevExpenses))}</div>
+        <div class="kpi-note">Пред. период: ${formatMoney(prevExpenses)}</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-top"><span class="kpi-label">Чистая прибыль</span><span class="kpi-icon blue">${ICONS.trendUp}</span></div>
+        <div class="kpi-row"><span class="kpi-value ${profit>=0?'pos':'neg'}">${formatMoney(profit)}</span>${changePillHtml(pctChange(profit, prevProfit))}</div>
+        <div class="kpi-note">Пред. период: ${formatMoney(prevProfit)}</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-top"><span class="kpi-label">Новых клиентов</span><span class="kpi-icon">${ICONS.clients}</span></div>
+        <div class="kpi-row"><span class="kpi-value">${newClients}</span>${changePillHtml(pctChange(newClients, prevNewClients))}</div>
+        <div class="kpi-note">Пред. период: ${prevNewClients}</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>Доходы и расходы</h2><div class="sub">последние 6 месяцев</div></div>
+        </div>
+        ${renderIncomeExpenseChart()}
+      </div>
+      <div class="panel" style="display:flex; flex-direction:column;">
+        <div class="panel-head">
+          <div><h2>Динамика</h2><div class="sub">рост дохода ${p.label}</div></div>
+        </div>
+        ${buildRadialGauge(incomeChange)}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px;">
+          <div style="background:var(--surface-2); border-radius:var(--radius-m); padding:12px 13px;">
+            <div style="font-size:11px; color:var(--text-3); font-weight:700; text-transform:uppercase;">Заказов выполнено</div>
+            <div class="num" style="font-size:18px; font-weight:700; margin-top:3px;">${completedOrdersInRange(p.from,p.to).length}</div>
+          </div>
+          <div style="background:var(--surface-2); border-radius:var(--radius-m); padding:12px 13px;">
+            <div style="font-size:11px; color:var(--text-3); font-weight:700; text-transform:uppercase;">Средний чек</div>
+            <div class="num" style="font-size:18px; font-weight:700; margin-top:3px;">${formatMoney(avgCheck(p.from,p.to))}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Ближайшие заказы</h2><div class="sub">на 7 дней вперёд</div></div>
+        <button class="btn btn-sm" onclick="setView('schedule')">Всё расписание</button>
+      </div>
+      <div class="row-list">
+        ${upcoming.length===0 ? `<div class="empty-note">Нет запланированных заказов на ближайшую неделю</div>` :
+          upcoming.slice(0,8).map(o=>renderOrderRow(o)).join('')}
+      </div>
+    </div>
+  `;
+}
+function avgCheck(from, to){
+  const list = completedOrdersInRange(from, to);
+  if(!list.length) return 0;
+  return list.reduce((s,o)=>s+(Number(o.amount)||0),0) / list.length;
+}
+
+function renderOrderRow(o, opts){
+  const cl = clientById(o.clientId);
+  const clickable = !opts || opts.clickable!==false;
+  const dateLine = opts && opts.hideDate ? '' : formatDateWithDow(o.date)+(o.time?', '+o.time:'');
+  return `
+    <div class="row-item" ${clickable?`style="cursor:pointer;" onclick="openOrderForm(null,'${o.id}');"`:''}>
+      <div class="row-avatar">${initials(o.clientName||(cl&&cl.name))}</div>
+      <div class="row-main">
+        <div class="row-title">${esc(o.clientName || (cl&&cl.name) || 'Клиент удалён')}</div>
+        <div class="row-sub">${[o.service?esc(o.service):'', dateLine, cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div class="row-end">
+        <div class="num" style="font-weight:600">${formatMoney(o.amount)}</div>
+        <span class="pill ${statusPillClass(o.status)}" style="margin-top:3px;">${statusLabel(o.status)}</span>
+      </div>
+    </div>`;
+}
+function cleanerNamesLine(o){
+  const names = (o.cleanerNames&&o.cleanerNames.length) ? o.cleanerNames : (o.cleanerIds||[]).map(id=>cleanerById(id)?.name).filter(Boolean);
+  return names.length ? '· '+names.join(', ') : '';
+}
+
+/* ---- simple validated grouped bar chart (income vs expense), last 6 months ---- */
+function renderIncomeExpenseChart(){
+  const now = new Date();
+  const months = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({year:d.getFullYear(), month:d.getMonth()});
+  }
+  const data = months.map(({year,month})=>{
+    const [f,t] = monthBounds(year,month);
+    return { year, month, label: RU_MONTHS_NOM[month].slice(0,3), income: incomeInRange(f,t), expense: expensesInRange(f,t) };
+  });
+  const hi = data.length-1; // highlighted = current month
+  const max = Math.max(1, ...data.map(d=>Math.max(d.income,d.expense)));
+  const W = 560, H = 210, padL = 44, padB = 26, padT = 46, padR = 10;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const groupW = plotW / data.length;
+  const barW = Math.min(22, groupW*0.32);
+  const yFor = v => padT + plotH - (v/max)*plotH;
+  const ticks = 4;
+  let gridSvg = '';
+  for(let i=0;i<=ticks;i++){
+    const v = max*i/ticks;
+    const y = yFor(v);
+    gridSvg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border-soft)" stroke-width="1"/>`;
+    gridSvg += `<text x="${padL-8}" y="${y+3}" font-size="9.5" text-anchor="end" fill="var(--text-3)" font-family="IBM Plex Mono">${formatCompact(v)}</text>`;
+  }
+  let bars = '', tooltip = '', hiCx = 0, hiTop = padT;
+  data.forEach((d,i)=>{
+    const gx = padL + i*groupW;
+    const cx = gx + groupW/2;
+    const x1 = cx - barW - 2, x2 = cx + 2;
+    const yInc = yFor(d.income), yExp = yFor(d.expense);
+    const isHi = i===hi;
+    const incFill = isHi ? 'url(#hatchIncome)' : 'var(--surface-3)';
+    const expFill = isHi ? 'var(--chart-expense)' : 'var(--surface-3)';
+    bars += `<rect x="${x1}" y="${yInc}" width="${barW}" height="${Math.max(0,padT+plotH-yInc)}" rx="4" fill="${incFill}"/>`;
+    bars += `<rect x="${x2}" y="${yExp}" width="${barW}" height="${Math.max(0,padT+plotH-yExp)}" rx="4" fill="${expFill}"/>`;
+    bars += `<text x="${cx}" y="${H-8}" font-size="10.5" text-anchor="middle" fill="${isHi?'var(--text)':'var(--text-2)'}" font-weight="${isHi?800:600}">${d.label}</text>`;
+    if(isHi){ hiCx = cx; hiTop = Math.min(yInc, yExp); }
+  });
+  // floating tooltip card over the current month
+  const hiData = data[hi];
+  const boxW = 148, boxH = 58;
+  const boxX = clamp(hiCx - boxW/2, padL-4, W-padR-boxW+4);
+  const boxY = Math.max(2, hiTop - boxH - 10);
+  tooltip = `
+    <g>
+      <rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+      <text x="${boxX+11}" y="${boxY+18}" font-size="10.5" font-weight="700" fill="var(--text)">${RU_MONTHS_NOM[hiData.month]} ${hiData.year}</text>
+      <circle cx="${boxX+13}" cy="${boxY+31}" r="3" fill="var(--chart-income)"/>
+      <text x="${boxX+21}" y="${boxY+34}" font-size="9.5" fill="var(--text-2)">Доход</text>
+      <text x="${boxX+boxW-11}" y="${boxY+34}" font-size="9.5" text-anchor="end" font-weight="700" fill="var(--text)" font-family="IBM Plex Mono">${formatCompact(hiData.income)}</text>
+      <circle cx="${boxX+13}" cy="${boxY+46}" r="3" fill="none" stroke="var(--chart-expense)" stroke-width="1.6"/>
+      <text x="${boxX+21}" y="${boxY+49}" font-size="9.5" fill="var(--text-2)">Расход</text>
+      <text x="${boxX+boxW-11}" y="${boxY+49}" font-size="9.5" text-anchor="end" font-weight="700" fill="var(--text)" font-family="IBM Plex Mono">${formatCompact(hiData.expense)}</text>
+    </g>
+    <line x1="${hiCx}" y1="${boxY+boxH}" x2="${hiCx}" y2="${hiTop-5}" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="2.5 2.5"/>
+    <circle cx="${hiCx}" cy="${hiTop-5}" r="3.2" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`;
+  return `
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--chart-income)"></span>Доход (выполненные)</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--chart-expense)"></span>Расход</div>
+    </div>
+    <div class="chart-scroll">
+      <svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Доходы и расходы за последние 6 месяцев">
+        <defs>
+          <pattern id="hatchIncome" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="6" height="6" fill="var(--chart-income)"/>
+            <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(255,255,255,.4)" stroke-width="2.2"/>
+          </pattern>
+        </defs>
+        ${gridSvg}${bars}${tooltip}
+      </svg>
+    </div>`;
+}
+/* ---- decorative radial "gauge" made of a fan of rounded petals ---- */
+function buildRadialGauge(percent){
+  const hasValue = percent!==null && Number.isFinite(percent);
+  const displayPct = hasValue ? percent : 0;
+  const N = 15;
+  const size = 200, cx = size/2, cy = 152, rOuter = 88, rInner = 52;
+  const cA = cssVar('--accent-strong', '#2545d6');
+  const cB = cssVar('--accent-soft', '#e7ecff');
+  let petals = '';
+  for(let i=0;i<N;i++){
+    const t = i/(N-1);
+    const angleDeg = 180 - t*180;
+    const rad = angleDeg*Math.PI/180;
+    const x1 = cx + rInner*Math.cos(rad), y1 = cy - rInner*Math.sin(rad);
+    const x2 = cx + rOuter*Math.cos(rad), y2 = cy - rOuter*Math.sin(rad);
+    const color = hexInterp(cA, cB, t);
+    petals += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="12" stroke-linecap="round"/>`;
+  }
+  return `
+    <div style="position:relative;">
+      <svg width="${size}" height="168" viewBox="0 0 ${size} 168" style="width:100%; max-width:260px; height:auto; display:block; margin:0 auto;">${petals}</svg>
+      <div style="position:absolute; left:0; right:0; bottom:6px; text-align:center;">
+        <div class="num" style="font-size:25px; font-weight:700; color:var(--text);">${hasValue ? (displayPct>=0?'':'−')+Math.abs(displayPct).toFixed(1)+'%' : '—'}</div>
+        <div style="font-size:11.5px; color:var(--text-3); font-weight:700;">Рост дохода</div>
+      </div>
+    </div>`;
+}
+function formatCompact(n){
+  if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'М';
+  if(n>=1000) return Math.round(n/1000)+'к';
+  return String(Math.round(n));
+}
+
+/* =========================================================================
+   Клиенты
+   ========================================================================= */
+function renderClients(){
+  const q = state.clientSearch.trim().toLowerCase();
+  const list = state.clients.filter(c=>{
+    if(!q) return true;
+    return (c.name||'').toLowerCase().includes(q) || (c.phone||'').toLowerCase().includes(q) || (c.address||'').toLowerCase().includes(q);
+  });
+  return `
+    <div class="topbar">
+      <div><h1>Клиенты</h1><div class="sub">База клиентов, история заказов и LTV</div></div>
+      <div class="topbar-actions">
+        <div class="search-box">${ICONS.search}<input type="text" placeholder="Поиск по имени, телефону, адресу" value="${esc(state.clientSearch)}" oninput="state.clientSearch=this.value; render();"></div>
+        <button class="btn btn-primary" onclick="openClientForm()">${ICONS.plus}Клиент</button>
+      </div>
+    </div>
+    ${list.length===0 ? `<div class="panel"><div class="empty-note">${state.clients.length===0?'Клиентов пока нет — добавьте первого.':'Ничего не найдено'}</div></div>` : `
+    <div class="client-grid">
+      ${list.map(c=>{
+        const ltv = clientLTV(c.id);
+        const last = clientLastOrder(c.id);
+        return `
+        <button class="client-card" onclick="openClientDetail('${c.id}')">
+          <div class="client-card-top">
+            <div class="row-avatar">${initials(c.name)}</div>
+            <div class="row-main">
+              <div class="row-title">${esc(c.name)}</div>
+              <div class="row-sub">${esc(c.address||c.phone||'')}</div>
+            </div>
+          </div>
+          <div class="row-sub">${last ? 'Последний заказ: '+formatDateShort(last.date)+' · '+formatMoney(last.amount) : 'Заказов ещё не было'}</div>
+          <div class="ltv"><span style="font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase;">LTV</span><b>${formatMoney(ltv)}</b></div>
+        </button>`;
+      }).join('')}
+    </div>`}
+  `;
+}
+
+function openClientForm(id){ openModal({type:'clientForm', id: id||null}); }
+function modalClientForm(id){
+  const c = id ? clientById(id) : null;
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${c?'Изменить клиента':'Новый клиент'}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <form onsubmit="return submitClientForm(event,${c?`'${c.id}'`:'null'})">
+        <div class="field"><label>Имя клиента / название объекта *</label><input type="text" id="cf_name" required value="${esc(c?.name||'')}" placeholder="Например: Ирина Соколова"></div>
+        <div class="field-row">
+          <div class="field"><label>Телефон</label><input type="tel" id="cf_phone" value="${esc(c?.phone||'')}" placeholder="+7 900 000-00-00"></div>
+          <div class="field"><label>Адрес объекта</label><input type="text" id="cf_address" value="${esc(c?.address||'')}" placeholder="Улица, дом, кв./офис"></div>
+        </div>
+        <div class="field"><label>Заметки</label><textarea id="cf_notes" placeholder="Особенности объекта, домофон, животные и т.д.">${esc(c?.notes||'')}</textarea></div>
+        ${!c ? `<div class="field"><label>Фото объекта</label><input type="file" id="cf_photos" accept="image/*" multiple><div class="hint">Можно добавить позже, в карточке клиента</div></div>` : ''}
+        <div class="form-actions">
+          <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary">${c?'Сохранить':'Добавить клиента'}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+async function submitClientForm(ev, id){
+  ev.preventDefault();
+  const data = {
+    name: document.getElementById('cf_name').value.trim(),
+    phone: document.getElementById('cf_phone').value.trim(),
+    address: document.getElementById('cf_address').value.trim(),
+    notes: document.getElementById('cf_notes').value.trim(),
+  };
+  if(!data.name){ toast('Укажите имя клиента'); return false; }
+  let clientId = id;
+  if(id){
+    await updateDocById('clients', id, data);
+  }else{
+    data.createdAt = todayISO();
+    clientId = await addDoc('clients', data);
+  }
+  const fileInput = document.getElementById('cf_photos');
+  if(fileInput && fileInput.files && fileInput.files.length){
+    toast('Клиент добавлен, загружаю фото…');
+    for(const file of Array.from(fileInput.files).slice(0,6)){
+      try{
+        const dataUrl = await compressImage(file);
+        await addPhoto(clientId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
+      }catch(e){ console.error(e); }
+    }
+    if(DEMO) render();
+  }
+  closeModal();
+  toast(id?'Клиент обновлён':'Клиент добавлен');
+  return false;
+}
+
+function openClientDetail(id){ openModal({type:'clientDetail', id}); loadClientPhotos(id); }
+async function loadClientPhotos(id){
+  currentPhotosClientId = id;
+  currentPhotosCache = await getPhotos(id);
+  if(state.modal && state.modal.type==='clientDetail' && state.modal.id===id) renderModal();
+}
+function modalClientDetail(id){
+  const c = clientById(id);
+  if(!c) return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal"><div class="empty-note">Клиент не найден</div></div></div>`;
+  const orders = ordersForClient(id);
+  const ltv = clientLTV(id);
+  const photos = (currentPhotosClientId===id) ? currentPhotosCache : [];
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal wide">
+      <div class="modal-head">
+        <div>
+          <h3>${esc(c.name)}</h3>
+          <div class="sub" style="font-size:12px; color:var(--text-3); margin-top:3px;">${esc(c.phone||'')}${c.phone&&c.address?' · ':''}${esc(c.address||'')}</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="openClientForm('${c.id}')">${ICONS.edit}Изм.</button>
+          <button class="modal-close" onclick="closeModal()">${ICONS.x}</button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-item"><div class="k">LTV (по выполненным)</div><div class="v num" style="font-size:16px;">${formatMoney(ltv)}</div></div>
+        <div class="detail-item"><div class="k">Заказов всего</div><div class="v">${orders.length}</div></div>
+      </div>
+      ${c.notes ? `<div class="detail-item" style="margin-bottom:14px;"><div class="k">Заметки</div><div class="v">${esc(c.notes)}</div></div>` : ''}
+
+      <div class="section-title">
+        <span>Фото объекта</span>
+        <label class="btn btn-sm" style="margin:0;">${ICONS.camera}Добавить<input type="file" accept="image/*" multiple style="display:none" onchange="uploadClientPhotos(event,'${c.id}')"></label>
+      </div>
+      <div class="photo-grid">
+        ${photos.map(p=>`
+          <div class="photo-thumb">
+            <img src="${p.dataUrl}" onclick="openLightboxPhoto('${p.id}')">
+            <button class="del" onclick="event.stopPropagation(); removeClientPhoto('${c.id}','${p.id}')" title="Удалить фото">${ICONS.x}</button>
+          </div>`).join('')}
+        ${photos.length===0 ? `<div class="empty-note" style="grid-column:1/-1; padding:10px 4px;">Фото ещё не добавлены</div>` : ''}
+      </div>
+
+      <div class="section-title">
+        <span>История заказов</span>
+        <button class="btn btn-sm btn-primary" onclick="closeModal(); openOrderForm({clientId:'${c.id}'});">${ICONS.plus}Новый заказ</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Дата</th><th>Клинеры</th><th>Статус</th><th class="num">Сумма</th></tr></thead>
+          <tbody>
+            ${orders.length===0 ? `<tr><td colspan="4" class="empty-note">Заказов ещё не было</td></tr>` :
+              orders.map(o=>`
+              <tr>
+                <td>${formatDateShort(o.date)}${o.time?', '+o.time:''} ${o.seriesId?ICONS.repeat:''}</td>
+                <td>${cleanerNamesLine(o).replace('· ','') || '—'}</td>
+                <td><span class="pill ${statusPillClass(o.status)}">${statusLabel(o.status)}</span></td>
+                <td class="num">${formatMoney(o.amount)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+async function uploadClientPhotos(ev, clientId){
+  const files = Array.from(ev.target.files||[]).slice(0,6);
+  if(!files.length) return;
+  toast('Загружаю фото…');
+  for(const file of files){
+    try{
+      const dataUrl = await compressImage(file);
+      await addPhoto(clientId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
+    }catch(e){ console.error(e); toast('Не удалось загрузить одно из фото'); }
+  }
+  await loadClientPhotos(clientId);
+  toast('Фото добавлены');
+}
+async function removeClientPhoto(clientId, photoId){
+  await deletePhoto(clientId, photoId);
+  await loadClientPhotos(clientId);
+}
+function openLightboxPhoto(photoId){
+  const p = currentPhotosCache.find(x=>x.id===photoId);
+  if(p) openModal({type:'lightbox', src:p.dataUrl});
+}
+function modalLightbox(src){
+  return `<div class="lightbox" onclick="if(event.target===this) closeModal()">
+    <button class="modal-close" onclick="closeModal()">${ICONS.x}</button>
+    <img src="${src}">
+  </div>`;
+}
+
+/* image compression: resize to max 1000px side, JPEG, target < ~220KB */
+function compressImage(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const maxSide = 1000;
+        let {width, height} = img;
+        if(width>height && width>maxSide){ height = Math.round(height*maxSide/width); width = maxSide; }
+        else if(height>=width && height>maxSide){ width = Math.round(width*maxSide/height); height = maxSide; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,width,height);
+        ctx.drawImage(img, 0, 0, width, height);
+        let quality = 0.72;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        let guard = 0;
+        while(dataUrl.length > 230*1024 && quality > 0.3 && guard < 6){
+          quality -= 0.12;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+          guard++;
+        }
+        resolve(dataUrl);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =========================================================================
+   Расписание / Календарь
+   ========================================================================= */
+function renderSchedule(){
+  const year = state.calYear, month = state.calMonth;
+  const first = new Date(year, month, 1);
+  const startOffset = (first.getDay()+6)%7; // Monday=0
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startOffset;i++) cells.push({d: daysInPrevMonth-startOffset+1+i, muted:true, dateObj:new Date(year, month-1, daysInPrevMonth-startOffset+1+i)});
+  for(let d=1; d<=daysInMonth; d++) cells.push({d, muted:false, dateObj:new Date(year, month, d)});
+  while(cells.length%7!==0 || cells.length<42) cells.push({d: cells.length - startOffset - daysInMonth + 1, muted:true, dateObj:null});
+  // fix trailing muted date objects
+  let nextDay=1;
+  cells.forEach((c,i)=>{ if(i>=startOffset+daysInMonth){ c.dateObj = new Date(year, month+1, nextDay); c.d = nextDay; nextDay++; } });
+
+  const todayStr = todayISO();
+  const todayOrders = ordersOnDate(todayStr);
+
+  return `
+    <div class="topbar">
+      <div><h1>Расписание</h1><div class="sub">Календарь заказов, в т.ч. повторяющихся</div></div>
+      <div class="topbar-actions">
+        <div class="cal-nav">
+          <button class="btn btn-sm" onclick="calShift(-1)">${ICONS.chevronLeft}</button>
+          <div class="label">${RU_MONTHS_NOM[month]} ${year}</div>
+          <button class="btn btn-sm" onclick="calShift(1)">${ICONS.chevronRight}</button>
+        </div>
+        <button class="btn btn-primary" onclick="openOrderForm()">${ICONS.plus}Новый заказ</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="cal-grid" style="margin-bottom:6px;">
+        ${RU_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      </div>
+      <div class="cal-grid">
+        ${cells.map(c=>{
+          if(!c.dateObj) return `<div class="cal-cell muted"></div>`;
+          const ds = toISO(c.dateObj);
+          const dayOrders = ordersOnDate(ds);
+          const isToday = ds===todayStr;
+          return `
+          <button class="cal-cell ${c.muted?'muted':''} ${isToday?'today':''}" onclick="openModal({type:'day', date:'${ds}'})">
+            <div class="cal-daynum">${c.d}</div>
+            <div class="cal-chip-list">
+              ${dayOrders.slice(0,3).map(o=>`<div class="cal-chip ${o.status==='completed'?'done':o.status==='cancelled'?'cancel':''}">${esc((o.clientName||'').split(' ')[0]||'Заказ')}${o.time?' '+o.time:''}</div>`).join('')}
+              ${dayOrders.length>3 ? `<div class="cal-more">+${dayOrders.length-3} ещё</div>` : ''}
+            </div>
+            ${dayOrders.length ? `
+            <div class="cal-dot-list">
+              ${dayOrders.slice(0,4).map(o=>`<span class="cal-dot ${o.status==='completed'?'done':o.status==='cancelled'?'cancel':''}"></span>`).join('')}
+              ${dayOrders.length>4 ? `<span class="cal-dot-more">+${dayOrders.length-4}</span>` : ''}
+            </div>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Заказы на сегодня</h2><div class="sub">${formatDateWithDow(todayStr)}</div></div>
+      </div>
+      <div class="row-list">
+        ${todayOrders.length===0 ? `<div class="empty-note">На сегодня заказов нет</div>` :
+          todayOrders.map(o=>renderOrderRow(o, {hideDate:true})).join('')}
+      </div>
+    </div>
+  `;
+}
+function calShift(delta){
+  let m = state.calMonth + delta, y = state.calYear;
+  if(m<0){ m=11; y--; } if(m>11){ m=0; y++; }
+  state.calMonth = m; state.calYear = y;
+  render();
+}
+function modalDay(dateStr){
+  const orders = ordersOnDate(dateStr);
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${formatDateWithDow(dateStr)}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <div class="row-list" style="margin-bottom:14px;">
+        ${orders.length===0 ? `<div class="empty-note">На этот день заказов нет</div>` :
+          orders.map(o=>`
+          <div class="row-item" style="cursor:pointer;" onclick="closeModal(); openOrderForm(null,'${o.id}');">
+            <div class="row-avatar">${initials(o.clientName)}</div>
+            <div class="row-main">
+              <div class="row-title">${esc(o.clientName)} ${o.seriesId?ICONS.repeat:''}</div>
+              <div class="row-sub">${[o.service?esc(o.service):'', o.time||'', cleanerNamesLine(o).replace(/^·\s*/,'') || 'клинер не назначен'].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div class="row-end">
+              <div class="num" style="font-weight:600">${formatMoney(o.amount)}</div>
+              <span class="pill ${statusPillClass(o.status)}" style="margin-top:3px;">${statusLabel(o.status)}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:0;">
+        <button class="btn btn-primary" onclick="closeModal(); openOrderForm({date:'${dateStr}'});">${ICONS.plus}Заказ на эту дату</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---- order form ---- */
+function openOrderForm(prefill, editId){
+  activeCleanerSet = new Set();
+  if(editId){
+    const o = state.orders.find(x=>x.id===editId);
+    if(o) (o.cleanerIds||[]).forEach(id=>activeCleanerSet.add(id));
+    openModal({type:'orderForm', editId, prefill: o||{}});
+  }else{
+    if(prefill && prefill.cleanerIds) prefill.cleanerIds.forEach(id=>activeCleanerSet.add(id));
+    openModal({type:'orderForm', editId:null, prefill: prefill||{}});
+  }
+}
+function modalOrderForm(m){
+  const editId = m.editId;
+  const o = editId ? state.orders.find(x=>x.id===editId) : null;
+  const pf = m.prefill||{};
+  const dateVal = o?.date || pf.date || todayISO();
+  const isEdit = !!o;
+  const year = parseISO(dateVal).getFullYear();
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${isEdit?'Изменить заказ':'Новый заказ'}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <form onsubmit="return submitOrderForm(event, ${isEdit?`'${o.id}'`:'null'})">
+
+        <div class="field">
+          <label>Клиент *</label>
+          ${isEdit ? `
+            <select id="of_client" disabled><option>${esc(o.clientName)}</option></select>
+            <div class="hint">Клиента заказа изменить нельзя — создайте новый заказ, если объект другой</div>
+            <input type="hidden" id="of_client_hidden" value="${o.clientId||''}">
+          ` : `
+            <select id="of_client" onchange="onOrderClientChange(this)">
+              <option value="">— выберите клиента —</option>
+              ${state.clients.map(c=>`<option value="${c.id}" ${pf.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+              <option value="__new__">+ Новый клиент</option>
+            </select>
+          `}
+        </div>
+        <div id="of_newClientFields" ${(!isEdit && pf.clientId==='__new__')?'':'hidden'} style="background:var(--surface-2); border-radius:10px; padding:11px 12px 1px; margin:-6px 0 13px;">
+          <div class="field"><label>Имя нового клиента *</label><input type="text" id="of_newName" placeholder="Имя или название объекта"></div>
+          <div class="field-row">
+            <div class="field"><label>Телефон</label><input type="tel" id="of_newPhone"></div>
+            <div class="field"><label>Адрес</label><input type="text" id="of_newAddress"></div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label>Дата *</label><input type="date" id="of_date" required value="${dateVal}"></div>
+          <div class="field"><label>Время</label><input type="time" id="of_time" value="${o?.time||pf.time||''}"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Сумма, ₽ *</label><input type="number" id="of_amount" min="0" step="1" required value="${o?.amount??pf.amount??''}"></div>
+          <div class="field"><label>Статус</label>
+            <select id="of_status">
+              <option value="scheduled" ${!o||o.status==='scheduled'?'selected':''}>Запланирован</option>
+              <option value="completed" ${o?.status==='completed'?'selected':''}>Выполнен</option>
+              <option value="cancelled" ${o?.status==='cancelled'?'selected':''}>Отменён</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Услуга</label>
+          <input type="text" id="of_service" placeholder="Например: генеральная уборка" value="${esc(o?.service||pf.service||'')}">
+        </div>
+
+        <div class="field">
+          <label>Клинеры на заказе</label>
+          <div class="chip-select" id="of_cleaners">
+            ${state.cleaners.length===0 ? `<div class="hint">Сначала добавьте клинеров во вкладке «Клинеры»</div>` :
+              state.cleaners.map(k=>`
+              <button type="button" class="chip-toggle ${activeCleanerSet.has(k.id)?'on':''}" data-cleaner="${k.id}" onclick="toggleOrderCleaner('${k.id}', this)">
+                <span class="cleaner-dot" style="background:${k.color}"></span>${esc(k.name)}
+              </button>`).join('')}
+          </div>
+        </div>
+
+        <div class="field"><label>Заметки</label><textarea id="of_notes" placeholder="Комментарий к заказу">${esc(o?.notes||'')}</textarea></div>
+
+        ${!isEdit ? `
+        <div class="field">
+          <label>Повтор заказа</label>
+          <select id="of_recurrence" onchange="onRecurrenceChange(this)">
+            <option value="none">Не повторять</option>
+            <option value="weekly">Раз в неделю</option>
+            <option value="biweekly">Раз в 2 недели</option>
+            <option value="every4weeks">Раз в 4 недели</option>
+            <option value="monthly">Раз в месяц (то же число)</option>
+          </select>
+        </div>
+        <div class="field-row" id="of_untilWrap" hidden>
+          <div class="field"><label>Повторять до</label><input type="date" id="of_until" value="${year}-12-31"></div>
+          <div class="field" style="justify-content:flex-end;"><div class="hint" style="padding-top:20px;">Будут созданы отдельные заказы на каждую дату — их можно менять и отменять по одному</div></div>
+        </div>
+        ` : (o.seriesId ? `<div class="hint" style="margin:-6px 0 13px; display:flex; align-items:center; gap:6px;">${ICONS.repeat} Часть повторяющейся серии (${recurrenceLabel(o.recurrenceType)})</div>` : '')}
+
+        ${isEdit ? `<div class="form-error" id="of_error" hidden></div>` : `<div class="form-error" id="of_error" hidden></div>`}
+
+        <div class="form-actions" style="justify-content:space-between;">
+          <div>
+            ${isEdit ? `
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteOrderPrompt('${o.id}', ${o.seriesId?`'${o.seriesId}'`:'null'}, '${o.date}')">${ICONS.trash}Удалить</button>
+            ` : ''}
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+            <button type="submit" class="btn btn-primary">${isEdit?'Сохранить':'Создать заказ'}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+function toggleOrderCleaner(id, btn){
+  if(activeCleanerSet.has(id)) activeCleanerSet.delete(id); else activeCleanerSet.add(id);
+  btn.classList.toggle('on');
+}
+function onOrderClientChange(sel){
+  const wrap = document.getElementById('of_newClientFields');
+  wrap.hidden = sel.value !== '__new__';
+}
+function onRecurrenceChange(sel){
+  document.getElementById('of_untilWrap').hidden = sel.value === 'none';
+}
+async function submitOrderForm(ev, editId){
+  ev.preventDefault();
+  const errEl = document.getElementById('of_error');
+  errEl.hidden = true;
+  const date = document.getElementById('of_date').value;
+  const time = document.getElementById('of_time').value;
+  const amount = Number(document.getElementById('of_amount').value)||0;
+  const status = document.getElementById('of_status').value;
+  const service = document.getElementById('of_service').value.trim();
+  const notes = document.getElementById('of_notes').value.trim();
+  const cleanerIds = Array.from(activeCleanerSet);
+  const cleanerNames = cleanerIds.map(id=>cleanerById(id)?.name).filter(Boolean);
+
+  if(!date){ errEl.textContent='Укажите дату заказа'; errEl.hidden=false; return false; }
+
+  if(editId){
+    await updateDocById('orders', editId, {date, time, amount, status, service, notes, cleanerIds, cleanerNames});
+    closeModal();
+    toast('Заказ обновлён');
+    return false;
+  }
+
+  // resolve client
+  let clientId = document.getElementById('of_client').value;
+  let clientName = '';
+  if(clientId === '__new__'){
+    const name = document.getElementById('of_newName').value.trim();
+    if(!name){ errEl.textContent='Укажите имя нового клиента'; errEl.hidden=false; return false; }
+    clientId = await addDoc('clients', {
+      name, phone: document.getElementById('of_newPhone').value.trim(),
+      address: document.getElementById('of_newAddress').value.trim(), notes:'', createdAt: todayISO(),
+    });
+    clientName = name;
+  }else if(clientId){
+    const c = clientById(clientId);
+    clientName = c ? c.name : '';
+  }else{
+    errEl.textContent = 'Выберите клиента или создайте нового';
+    errEl.hidden = false;
+    return false;
+  }
+
+  const recurrence = document.getElementById('of_recurrence')?.value || 'none';
+  const base = { clientId, clientName, time, amount, status, service, notes, cleanerIds, cleanerNames };
+
+  if(recurrence === 'none'){
+    await addDoc('orders', { ...base, date, seriesId:null, recurrenceType:'none', createdAt:new Date().toISOString() });
+  }else{
+    const until = document.getElementById('of_until').value || `${parseISO(date).getFullYear()}-12-31`;
+    const seriesId = uid('series');
+    const dates = [date];
+    let cur = date, guard=0;
+    while(guard<150){
+      cur = addInterval(cur, recurrence);
+      if(cur>until) break;
+      dates.push(cur);
+      guard++;
+    }
+    for(const d of dates){
+      await addDoc('orders', { ...base, date:d, seriesId, recurrenceType:recurrence, createdAt:new Date().toISOString() });
+    }
+    toast(`Создано заказов: ${dates.length}`);
+    closeModal();
+    return false;
+  }
+  closeModal();
+  toast('Заказ создан');
+  return false;
+}
+function deleteOrderPrompt(orderId, seriesId, date){
+  openModal({type:'confirmDeleteOrder', orderId, seriesId, date});
+}
+function modalConfirmDeleteOrder(m){
+  const {orderId, seriesId, date} = m;
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>Удалить заказ</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <p style="font-size:13.5px; color:var(--text-2); margin:0 0 16px;">Заказ на ${formatDateLong(date)}. ${seriesId?'Это часть повторяющейся серии.':''}</p>
+      <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:0; flex-wrap:wrap;">
+        <button class="btn btn-danger" onclick="doDeleteOrder('${orderId}')">Удалить только эту дату</button>
+        ${seriesId ? `<button class="btn btn-danger" onclick="doDeleteSeries('${seriesId}','${date}')">Удалить эту и все следующие</button>` : ''}
+        <button class="btn" onclick="closeModal()">Отмена</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function doDeleteOrder(orderId){
+  await deleteDocById('orders', orderId);
+  closeModal();
+  toast('Заказ удалён');
+}
+async function doDeleteSeries(seriesId, fromDate){
+  const toDelete = state.orders.filter(o=>o.seriesId===seriesId && o.date>=fromDate);
+  for(const o of toDelete) await deleteDocById('orders', o.id);
+  closeModal();
+  toast(`Удалено заказов: ${toDelete.length}`);
+}
+
+/* =========================================================================
+   Клинеры
+   ========================================================================= */
+function renderCleanersView(){
+  return `
+    <div class="topbar">
+      <div><h1>Клинеры</h1><div class="sub">Сотрудники, которых можно назначать на заказы</div></div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openCleanerForm()">${ICONS.plus}Клинер</button></div>
+    </div>
+    <div class="panel">
+      <div class="row-list">
+        ${state.cleaners.length===0 ? `<div class="empty-note">Клинеров пока нет — добавьте первого сотрудника</div>` :
+          state.cleaners.map(k=>{
+            const activeOrders = state.orders.filter(o=>(o.cleanerIds||[]).includes(k.id) && o.status==='completed').length;
+            return `
+            <div class="row-item">
+              <div class="row-avatar" style="background:${k.color}22; color:${k.color};">${initials(k.name)}</div>
+              <div class="row-main">
+                <div class="row-title">${esc(k.name)} ${k.active===false?'<span class=\"pill pill-neutral\">неактивен</span>':''}</div>
+                <div class="row-sub">${esc(k.phone||'—')} · выполнено заказов: ${activeOrders}</div>
+              </div>
+              <div class="row-end" style="display:flex; gap:6px;">
+                <button class="btn btn-sm" onclick="openCleanerForm('${k.id}')">${ICONS.edit}</button>
+                <button class="btn btn-sm btn-danger" onclick="confirmDeleteCleaner('${k.id}')">${ICONS.trash}</button>
+              </div>
+            </div>`;
+          }).join('')}
+      </div>
+    </div>
+  `;
+}
+function openCleanerForm(id){ openModal({type:'cleanerForm', id: id||null}); }
+function modalCleanerForm(id){
+  const k = id ? cleanerById(id) : null;
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${k?'Изменить клинера':'Новый клинер'}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <form onsubmit="return submitCleanerForm(event,${k?`'${k.id}'`:'null'})">
+        <div class="field"><label>Имя *</label><input type="text" id="kf_name" required value="${esc(k?.name||'')}"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="kf_phone" value="${esc(k?.phone||'')}"></div>
+        <div class="field">
+          <label>Цвет в календаре</label>
+          <div class="chip-select" id="kf_colors">
+            ${CLEANER_COLORS.map(c=>`<button type="button" class="chip-toggle ${((k?.color||CLEANER_COLORS[0])===c)?'on':''}" data-color="${c}" style="padding:5px 10px;" onclick="selectCleanerColor('${c}', this)"><span class="cleaner-dot" style="background:${c}"></span></button>`).join('')}
+          </div>
+          <input type="hidden" id="kf_color" value="${k?.color||CLEANER_COLORS[0]}">
+        </div>
+        ${k ? `<div class="checkline" style="margin-bottom:14px;"><input type="checkbox" id="kf_active" ${k.active!==false?'checked':''}><label for="kf_active" style="margin:0;">Активен (доступен для назначения)</label></div>` : ''}
+        <div class="form-actions">
+          <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary">${k?'Сохранить':'Добавить'}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+function selectCleanerColor(color, btn){
+  document.getElementById('kf_color').value = color;
+  btn.parentElement.querySelectorAll('.chip-toggle').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+async function submitCleanerForm(ev, id){
+  ev.preventDefault();
+  const data = {
+    name: document.getElementById('kf_name').value.trim(),
+    phone: document.getElementById('kf_phone').value.trim(),
+    color: document.getElementById('kf_color').value,
+  };
+  if(!data.name){ toast('Укажите имя клинера'); return false; }
+  if(id){
+    data.active = document.getElementById('kf_active').checked;
+    await updateDocById('cleaners', id, data);
+  }else{
+    data.active = true;
+    await addDoc('cleaners', data);
+  }
+  closeModal();
+  toast(id?'Клинер обновлён':'Клинер добавлен');
+  return false;
+}
+function confirmDeleteCleaner(id){
+  openModal({type:'confirmDeleteCleaner', id});
+}
+function modalConfirmDeleteCleaner(id){
+  const k = cleanerById(id);
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>Удалить клинера</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <p style="font-size:13.5px; color:var(--text-2); margin:0 0 16px;">Удалить «${esc(k?.name||'')}»? В прошлых заказах имя останется в истории.</p>
+      <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:0;">
+        <button class="btn btn-danger" onclick="doDeleteCleaner('${id}')">Удалить</button>
+        <button class="btn" onclick="closeModal()">Отмена</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function doDeleteCleaner(id){
+  await deleteDocById('cleaners', id);
+  closeModal();
+  toast('Клинер удалён');
+}
+
+/* =========================================================================
+   Финансы
+   ========================================================================= */
+function renderFinances(){
+  const p = periodBounds(state.financePeriod, state.financeCustomFrom, state.financeCustomTo);
+  const totalIncome = incomeInRange(p.from, p.to);
+  const totalExpense = expensesInRange(p.from, p.to);
+  const prevIncome = incomeInRange(p.prevFrom, p.prevTo);
+  const prevExpense = expensesInRange(p.prevFrom, p.prevTo);
+  const profit = totalIncome - totalExpense, prevProfit = prevIncome - prevExpense;
+
+  // Monthly breakdown for whichever calendar months the selected period touches,
+  // clipped to the period's actual boundaries at the edges.
+  const months = monthsInRange(p.from, p.to);
+  const rows = months.map(({year,month})=>{
+    const [mf,mt] = monthBounds(year,month);
+    const f = mf < p.from ? p.from : mf, t = mt > p.to ? p.to : mt;
+    return {year, month, inc: incomeInRange(f,t), exp: expensesInRange(f,t)};
+  });
+
+  const incomeItems = state.orders
+    .filter(o=>o.status==='completed' && o.date>=p.from && o.date<=p.to)
+    .sort((a,b)=> b.date.localeCompare(a.date));
+  const expenseItems = state.expenses
+    .filter(e=>e.date>=p.from && e.date<=p.to)
+    .sort((a,b)=> b.date.localeCompare(a.date));
+
+  return `
+    <div class="topbar">
+      <div><h1>Финансы</h1><div class="sub">Доходы по заказам, расходы вручную, чистая прибыль</div></div>
+      <div class="topbar-actions">
+        ${periodPickerHtml(state.financePeriod, state.financeCustomFrom, state.financeCustomTo, 'financePeriod', 'financeCustomFrom', 'financeCustomTo')}
+        <button class="btn btn-primary" onclick="openExpenseForm()">${ICONS.plus}Расход</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-tile">
+        <div class="kpi-label">Доход ${p.label}</div>
+        <div class="kpi-row"><span class="kpi-value pos">${formatMoney(totalIncome)}</span>${changePillHtml(pctChange(totalIncome, prevIncome))}</div>
+        <div class="kpi-note">Пред. период: ${formatMoney(prevIncome)}</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Расход ${p.label}</div>
+        <div class="kpi-row"><span class="kpi-value">${formatMoney(totalExpense)}</span>${changePillHtml(pctChange(totalExpense, prevExpense))}</div>
+        <div class="kpi-note">Пред. период: ${formatMoney(prevExpense)}</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Чистая прибыль ${p.label}</div>
+        <div class="kpi-row"><span class="kpi-value ${profit>=0?'pos':'neg'}">${formatMoney(profit)}</span>${changePillHtml(pctChange(profit, prevProfit))}</div>
+        <div class="kpi-note">Пред. период: ${formatMoney(prevProfit)}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h2>По месяцам</h2><div class="sub">Месяцы, затронутые выбранным периодом</div></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Месяц</th><th class="num">Доход</th><th class="num">Расход</th><th class="num">Прибыль</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td>${RU_MONTHS_NOM[r.month]}${months.length>0 && (rows[0].year!==rows[rows.length-1].year) ? ' '+r.year : ''}</td>
+                <td class="num" style="color:var(--status-good-fg);">${formatMoney(r.inc)}</td>
+                <td class="num">${formatMoney(r.exp)}</td>
+                <td class="num" style="font-weight:700; color:${r.inc-r.exp>=0?'var(--status-good-fg)':'var(--status-bad-fg)'}">${formatMoney(r.inc-r.exp)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="two-col-even">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>Доходы</h2><div class="sub">${incomeItems.length} оплаченных заказов ${p.label}</div></div>
+        </div>
+        <div class="row-list row-list-scroll">
+          ${incomeItems.length===0 ? `<div class="empty-note">За выбранный период выполненных заказов пока нет</div>` :
+            incomeItems.map(o=>`
+              <div class="row-item">
+                <div class="row-avatar" style="background:var(--status-good-bg); color:var(--status-good-fg); font-size:11px;">${formatDateShort(o.date)}</div>
+                <div class="row-main">
+                  <div class="row-title">${esc(o.clientName||'Клиент удалён')}</div>
+                  <div class="row-sub">${esc((o.cleanerNames||[]).join(', ')||'Без клинера')}</div>
+                </div>
+                <div class="row-end" style="display:flex; align-items:center; gap:8px;">
+                  <div class="num" style="font-weight:600; color:var(--status-good-fg);">+${formatMoney(o.amount)}</div>
+                </div>
+              </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>Расходы</h2><div class="sub">${expenseItems.length} записей ${p.label}</div></div>
+        </div>
+        <div class="row-list row-list-scroll">
+          ${expenseItems.length===0 ? `<div class="empty-note">За выбранный период расходов пока не внесено</div>` :
+            expenseItems.map(e=>`
+            <div class="row-item">
+              <div class="row-avatar" style="background:var(--status-pending-bg); color:var(--status-pending-fg); font-size:11px;">${formatDateShort(e.date)}</div>
+              <div class="row-main">
+                <div class="row-title">${esc(e.category)}</div>
+                <div class="row-sub">${esc(e.description||'')}</div>
+              </div>
+              <div class="row-end" style="display:flex; align-items:center; gap:8px;">
+                <div class="num" style="font-weight:600;">-${formatMoney(e.amount)}</div>
+                <button class="btn btn-sm" onclick="openExpenseForm('${e.id}')">${ICONS.edit}</button>
+                <button class="btn btn-sm btn-danger" onclick="doDeleteExpense('${e.id}')">${ICONS.trash}</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function openExpenseForm(id){ openModal({type:'expenseForm', id: id||null}); }
+function modalExpenseForm(id){
+  const e = id ? state.expenses.find(x=>x.id===id) : null;
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${e?'Изменить расход':'Новый расход'}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <form onsubmit="return submitExpenseForm(event,${e?`'${e.id}'`:'null'})">
+        <div class="field-row">
+          <div class="field"><label>Дата *</label><input type="date" id="ef_date" required value="${e?.date||todayISO()}"></div>
+          <div class="field"><label>Сумма, ₽ *</label><input type="number" id="ef_amount" min="0" step="1" required value="${e?.amount??''}"></div>
+        </div>
+        <div class="field"><label>Категория</label>
+          <select id="ef_category">
+            ${EXPENSE_CATEGORIES.map(c=>`<option ${e?.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Комментарий</label><textarea id="ef_desc" placeholder="Например: закупка химии в Леруа">${esc(e?.description||'')}</textarea></div>
+        <div class="form-actions">
+          <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary">${e?'Сохранить':'Добавить'}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+async function submitExpenseForm(ev, id){
+  ev.preventDefault();
+  const data = {
+    date: document.getElementById('ef_date').value,
+    amount: Number(document.getElementById('ef_amount').value)||0,
+    category: document.getElementById('ef_category').value,
+    description: document.getElementById('ef_desc').value.trim(),
+  };
+  if(!data.date){ toast('Укажите дату'); return false; }
+  if(id) await updateDocById('expenses', id, data);
+  else await addDoc('expenses', data);
+  closeModal();
+  toast(id?'Расход обновлён':'Расход добавлен');
+  return false;
+}
+async function doDeleteExpense(id){
+  await deleteDocById('expenses', id);
+  toast('Расход удалён');
+}
+</script>
+<script>
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
