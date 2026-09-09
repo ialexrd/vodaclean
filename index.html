@@ -299,6 +299,31 @@
   .row-end{flex:0 0 auto; text-align:right;}
   .empty-note{color:var(--text-3); font-size:13px; padding:18px 4px; text-align:center;}
 
+  /* ---------- Schedule order card ---------- */
+  .sched-card-list{display:flex; flex-direction:column;}
+  .sched-card{display:flex; align-items:flex-start; gap:10px; padding:13px 4px; border-top:1px solid var(--border-soft);}
+  .sched-card:first-child{border-top:none;}
+  .sched-card-main{min-width:0; flex:1;}
+  .sched-card-title{font-weight:800; font-size:15px; letter-spacing:-0.01em;}
+  .sched-card-datetime{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:4px;}
+  .sched-card-when{color:var(--status-pending-fg); font-weight:700; font-size:12.5px;}
+  .sched-card-service{display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-3); font-weight:600; margin-top:5px;}
+  .sched-card-row2{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:6px;}
+  .sched-card-who{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0;}
+  .sched-card-name{font-weight:700; font-size:13.5px;}
+  .sched-card-phone{color:var(--text-3); font-size:12.5px;}
+  .sched-card-amount{font-family:'IBM Plex Mono'; font-weight:700; font-size:14px; white-space:nowrap; flex:0 0 auto;}
+  .sched-card-notes{margin-top:6px; font-size:12.5px; color:var(--text-3); line-height:1.4;}
+  .sched-card-actions{display:flex; flex-direction:column; gap:6px; flex:0 0 auto;}
+  .sched-icon-btn{
+    width:30px; height:30px; border-radius:9px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-2); display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .sched-icon-btn:hover{background:var(--surface-2); color:var(--text);}
+  .sched-icon-btn.danger{color:var(--status-bad-fg);}
+  .sched-icon-btn.danger:hover{background:var(--status-bad-bg);}
+  .sched-icon-btn svg{width:15px; height:15px;}
+
   /* ---------- Badges / chips ---------- */
   .pill{
     display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px;
@@ -564,12 +589,14 @@ const ICONS = {
   trendUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l6-6 4 4 6-8"/><path d="M15 6h5v5"/></svg>`,
   moon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.7A8.5 8.5 0 1 1 9.3 3.5a7 7 0 0 0 11.2 11.2z"/></svg>`,
   logout:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15.5 16l4-4-4-4"/><path d="M19 12H9"/></svg>`,
+  phone:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4.5c1 0 1.9.6 2.3 1.6l.7 1.7c.3.8.1 1.7-.5 2.3l-1 1c1 2.3 2.9 4.2 5.2 5.2l1-1c.6-.6 1.5-.8 2.3-.5l1.7.7c1 .4 1.6 1.3 1.6 2.3v1.7c0 1.4-1.3 2.4-2.6 2c-4.7-1.4-9-5.7-10.4-10.4c-.4-1.3.6-2.6 2-2.6z"/></svg>`,
 };
 
 const CLEANER_COLORS = ['#2a78d6','#eb6834','#1baf7a','#c9862a','#e87ba4','#7a6ae0','#3f9a3f','#e0625f'];
 const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const RU_MONTHS_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const RU_DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const RU_DOW_ACC = ['понедельник','вторник','среду','четверг','пятницу','субботу','воскресенье'];
 const EXPENSE_CATEGORIES = ['Химия и расходники','Зарплата клинерам','Транспорт','Аренда/офис','Реклама','Инвентарь и техника','Прочее'];
 const SERVICE_TYPES = [
   {id:'support',    label:'Поддерживающая уборка',      color:'#2a78d6'},
@@ -614,6 +641,13 @@ function formatMoney(n){ n = Number(n)||0; return new Intl.NumberFormat('ru-RU',
 function formatDateLong(s){ if(!s) return '—'; const d=parseISO(s); return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
 function formatDateShort(s){ if(!s) return '—'; const d=parseISO(s); return `${d.getDate()} ${RU_MONTHS[d.getMonth()].slice(0,3)}`; }
 function formatDateWithDow(s){ if(!s) return '—'; const d=parseISO(s); const dow = RU_DOW[(d.getDay()+6)%7]; return `${dow}, ${d.getDate()} ${RU_MONTHS[d.getMonth()]}`; }
+function formatDateTimeSched(dateStr, timeStr){
+  if(!dateStr) return '—';
+  const d = parseISO(dateStr);
+  const dd = String(d.getDate()).padStart(2,'0'), mm = String(d.getMonth()+1).padStart(2,'0');
+  const dow = RU_DOW_ACC[(d.getDay()+6)%7];
+  return `${dd}.${mm}.${d.getFullYear()} (${dow})${timeStr?' '+timeStr:''}`;
+}
 function initials(name){ const p=(name||'?').trim().split(/\s+/); return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase() || '?'; }
 function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
 function addInterval(dateStr, type){
@@ -1608,6 +1642,38 @@ async function doDeleteClient(id){
 /* =========================================================================
    Расписание / Календарь
    ========================================================================= */
+function renderScheduleOrderCard(o){
+  const cl = clientById(o.clientId);
+  const name = o.clientName || (cl&&cl.name) || 'Клиент удалён';
+  const title = (cl && cl.address) ? cl.address : name;
+  const phone = cl?.phone || '';
+  const telHref = phone ? 'tel:' + phone.replace(/[^\d+]/g,'') : '';
+  const color = serviceColor(o.serviceId);
+  return `
+    <div class="sched-card">
+      <div class="sched-card-main">
+        <div class="sched-card-title">${esc(title)} ${o.seriesId?ICONS.repeat:''}</div>
+        <div class="sched-card-datetime">
+          <span class="sched-card-when">${formatDateTimeSched(o.date, o.time)}</span>
+          <span class="pill ${statusPillClass(o.status)}">${statusLabel(o.status)}</span>
+        </div>
+        ${o.service ? `<div class="sched-card-service">${color?`<span class="service-dot" style="background:${color}"></span>`:''}${esc(o.service)}</div>` : ''}
+        <div class="sched-card-row2">
+          <div class="sched-card-who">
+            <span class="sched-card-name">${esc(name)}</span>
+            ${phone ? `<span class="sched-card-phone">${esc(phone)}</span>` : ''}
+          </div>
+          <span class="sched-card-amount">${formatMoney(o.amount)}</span>
+        </div>
+        ${o.notes ? `<div class="sched-card-notes">${esc(o.notes)}</div>` : ''}
+      </div>
+      <div class="sched-card-actions">
+        <button type="button" class="sched-icon-btn" title="Изменить" onclick="openOrderForm(null,'${o.id}')">${ICONS.edit}</button>
+        ${phone ? `<a class="sched-icon-btn" title="Позвонить" href="${telHref}">${ICONS.phone}</a>` : ''}
+        <button type="button" class="sched-icon-btn danger" title="Удалить" onclick="deleteOrderPrompt('${o.id}', ${o.seriesId?`'${o.seriesId}'`:'null'}, '${o.date}')">${ICONS.x}</button>
+      </div>
+    </div>`;
+}
 function renderSchedule(){
   const year = state.calYear, month = state.calMonth;
   const first = new Date(year, month, 1);
@@ -1674,9 +1740,9 @@ function renderSchedule(){
       <div class="panel-head">
         <div><h2>Заказы на сегодня</h2><div class="sub">${formatDateWithDow(todayStr)}</div></div>
       </div>
-      <div class="row-list">
+      <div class="sched-card-list">
         ${todayOrders.length===0 ? `<div class="empty-note">На сегодня заказов нет</div>` :
-          todayOrders.map(o=>renderOrderRow(o, {hideDate:true})).join('')}
+          todayOrders.map(o=>renderScheduleOrderCard(o)).join('')}
       </div>
     </div>
   `;
@@ -1693,20 +1759,9 @@ function modalDay(dateStr){
   <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
     <div class="modal">
       <div class="modal-head"><h3>${formatDateWithDow(dateStr)}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
-      <div class="row-list" style="margin-bottom:14px;">
+      <div class="sched-card-list" style="margin-bottom:14px;">
         ${orders.length===0 ? `<div class="empty-note">На этот день заказов нет</div>` :
-          orders.map(o=>`
-          <div class="row-item" style="cursor:pointer;" onclick="closeModal(); openOrderForm(null,'${o.id}');">
-            <div class="row-avatar">${initials(o.clientName)}</div>
-            <div class="row-main">
-              <div class="row-title">${esc(o.clientName)} ${o.seriesId?ICONS.repeat:''}</div>
-              <div class="row-sub">${[o.service?esc(o.service):'', o.time||'', cleanerNamesLine(o).replace(/^·\s*/,'') || 'клинер не назначен'].filter(Boolean).join(' · ')}</div>
-            </div>
-            <div class="row-end">
-              <div class="num" style="font-weight:600">${formatMoney(o.amount)}</div>
-              <span class="pill ${statusPillClass(o.status)}" style="margin-top:3px;">${statusLabel(o.status)}</span>
-            </div>
-          </div>`).join('')}
+          orders.map(o=>renderScheduleOrderCard(o)).join('')}
       </div>
       <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:0;">
         <button class="btn btn-primary" onclick="closeModal(); openOrderForm({date:'${dateStr}'});">${ICONS.plus}Заказ на эту дату</button>
