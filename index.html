@@ -1142,7 +1142,7 @@ function seedDemoData(){
 }
 
 /* ---------------- render shell ---------------- */
-const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm','day','salaryForm']);
+const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm','day','salaryForm','restoreOrderForm']);
 function render(){
   // While a form modal is open, skip re-rendering so live updates from other
   // viewers never overwrite text the user is mid-typing. Underlying state is
@@ -1226,6 +1226,7 @@ function renderModal(){
   else if(state.modal.type==='cleanerForm') html = modalCleanerForm(state.modal.id);
   else if(state.modal.type==='expenseForm') html = modalExpenseForm(state.modal.id);
   else if(state.modal.type==='salaryForm') html = modalSalaryForm(state.modal);
+  else if(state.modal.type==='restoreOrderForm') html = modalRestoreOrderForm(state.modal);
   else if(state.modal.type==='lightbox') html = modalLightbox(state.modal.src);
   else if(state.modal.type==='confirmDeleteOrder') html = modalConfirmDeleteOrder(state.modal);
   else if(state.modal.type==='confirmDeleteCleaner') html = modalConfirmDeleteCleaner(state.modal.id);
@@ -1248,6 +1249,7 @@ function renderDashboard(){
   const newClients = newClientsInRange(p.from, p.to);
   const prevNewClients = newClientsInRange(p.prevFrom, p.prevTo);
   const upcoming = upcomingOrders(7);
+  const cancelledOrders = state.orders.filter(o=>o.status==='cancelled').sort((a,b)=> b.date.localeCompare(a.date));
   const incomeChange = pctChange(income, prevIncome);
 
   return `
@@ -1321,6 +1323,16 @@ function renderDashboard(){
           upcoming.slice(0,8).map(o=>renderOrderRow(o)).join('')}
       </div>
     </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Отменённые заказы</h2><div class="sub">можно восстановить с новой датой и суммой</div></div>
+      </div>
+      <div class="row-list row-list-scroll">
+        ${cancelledOrders.length===0 ? `<div class="empty-note">Отменённых заказов нет</div>` :
+          cancelledOrders.map(o=>renderCancelledOrderRow(o)).join('')}
+      </div>
+    </div>
   `;
 }
 function avgCheck(from, to){
@@ -1345,6 +1357,55 @@ function renderOrderRow(o, opts){
         <span class="pill ${statusPillClass(o.status)}" style="margin-top:3px;">${statusLabel(o.status)}</span>
       </div>
     </div>`;
+}
+function renderCancelledOrderRow(o){
+  const cl = clientById(o.clientId);
+  return `
+    <div class="row-item">
+      <div class="row-avatar">${initials(o.clientName||(cl&&cl.name))}</div>
+      <div class="row-main">
+        <div class="row-title">${esc(o.clientName || (cl&&cl.name) || 'Клиент удалён')}</div>
+        <div class="row-sub">${[o.service?esc(o.service):'', 'отменён на '+formatDateWithDow(o.date), cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div class="row-end" style="display:flex; align-items:center; gap:8px;">
+        <div class="num" style="font-weight:600">${formatMoney(o.amount)}</div>
+        <button class="btn btn-sm btn-primary" onclick="openRestoreOrderForm('${o.id}')">${ICONS.repeat}Восстановить</button>
+      </div>
+    </div>`;
+}
+function openRestoreOrderForm(orderId){ openModal({type:'restoreOrderForm', orderId}); }
+function modalRestoreOrderForm(m){
+  const o = state.orders.find(x=>x.id===m.orderId);
+  if(!o) return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal"><div class="empty-note">Заказ не найден</div></div></div>`;
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>Восстановить заказ</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <p style="font-size:12.5px; color:var(--text-3); margin:0 0 14px;">${esc(o.clientName||'Клиент удалён')} · был отменён на ${formatDateLong(o.date)}</p>
+      <form onsubmit="return submitRestoreOrderForm(event,'${o.id}')">
+        <div class="field-row">
+          <div class="field"><label>Новая дата *</label><input type="date" id="rf_date" required value="${todayISO()}"></div>
+          <div class="field"><label>Время</label><input type="time" id="rf_time" value="${o.time||''}"></div>
+        </div>
+        <div class="field"><label>Сумма, ₽ *</label><input type="number" id="rf_amount" min="0" step="1" required value="${o.amount??''}"></div>
+        <div class="form-actions">
+          <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary">Восстановить</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+async function submitRestoreOrderForm(ev, orderId){
+  ev.preventDefault();
+  const date = document.getElementById('rf_date').value;
+  const time = document.getElementById('rf_time').value;
+  const amount = Number(document.getElementById('rf_amount').value)||0;
+  if(!date) return false;
+  await updateDocById('orders', orderId, {date, time, amount, status:'scheduled'});
+  closeModal();
+  toast('Заказ восстановлен');
+  return false;
 }
 function cleanerNamesLine(o){
   const names = (o.cleanerNames&&o.cleanerNames.length) ? o.cleanerNames : (o.cleanerIds||[]).map(id=>cleanerById(id)?.name).filter(Boolean);
@@ -1811,7 +1872,9 @@ function renderSchedule(){
             <div class="cal-chip-list">
               ${dayOrders.slice(0,3).map(o=>{
                 const dot = serviceColor(o.serviceId) ? `<span class="service-dot" style="background:${serviceColor(o.serviceId)}"></span>` : '';
-                return `<div class="cal-chip ${o.status==='completed'?'done':o.status==='cancelled'?'cancel':''}">${dot}${esc((o.clientName||'').split(' ')[0]||'Заказ')}${o.time?' '+o.time:''}</div>`;
+                const addr = clientById(o.clientId)?.address;
+                const label = addr || o.clientName || 'Заказ';
+                return `<div class="cal-chip ${o.status==='completed'?'done':o.status==='cancelled'?'cancel':''}">${dot}${o.time?o.time+' ':''}${esc(label)}</div>`;
               }).join('')}
               ${dayOrders.length>3 ? `<div class="cal-more">+${dayOrders.length-3} ещё</div>` : ''}
             </div>
