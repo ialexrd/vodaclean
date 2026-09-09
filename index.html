@@ -302,7 +302,8 @@
   .empty-note{color:var(--text-3); font-size:13px; padding:18px 4px; text-align:center;}
 
   /* ---------- Schedule order card ---------- */
-  .sched-card-list{display:flex; flex-direction:column; container-type:inline-size;}
+  .sched-order-container{container-type:inline-size;}
+  .sched-card-list{display:flex; flex-direction:column;}
   .sched-card{display:flex; align-items:flex-start; gap:10px; padding:13px 4px; border-top:1px solid var(--border-soft);}
   .sched-card:first-child{border-top:none;}
   .sched-card-main{min-width:0; flex:1;}
@@ -313,7 +314,8 @@
   .sched-card-row2{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:6px;}
   .sched-card-who{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0;}
   .sched-card-name{font-weight:700; font-size:13.5px;}
-  .sched-card-phone{color:var(--text-3); font-size:12.5px;}
+  .sched-card-phone{color:var(--text-3); font-size:12.5px; text-decoration:none;}
+  .sched-card-phone:hover{text-decoration:underline;}
   .sched-card-amount{font-family:'IBM Plex Mono'; font-weight:700; font-size:14px; white-space:nowrap; flex:0 0 auto;}
   .sched-card-notes{margin-top:6px; font-size:12.5px; color:var(--text-3); line-height:1.4;}
   .sched-card-actions{display:flex; flex-direction:column; gap:6px; flex:0 0 auto;}
@@ -326,20 +328,12 @@
   .sched-icon-btn.danger:hover{background:var(--status-bad-bg);}
   .sched-icon-btn svg{width:15px; height:15px;}
 
-  /* Wide container (e.g. the "Заказы на сегодня" panel on desktop, not the
-     narrow day modal): lay the card out across the width instead of
-     stacking every field on its own line like on a phone. */
-  @container (min-width: 640px){
-    .sched-card-main{
-      display:grid; align-items:center; column-gap:16px; row-gap:3px;
-      grid-template-columns:auto 1fr auto;
-      grid-template-areas:"title title datetime" "service row2 row2" "notes notes notes";
-    }
-    .sched-card-title{grid-area:title; margin-bottom:0;}
-    .sched-card-datetime{grid-area:datetime; margin-top:0; gap:10px;}
-    .sched-card-service{grid-area:service; margin-top:0;}
-    .sched-card-row2{grid-area:row2; margin-top:0;}
-    .sched-card-notes{grid-area:notes; margin-top:2px;}
+  /* ---------- Schedule order table (wide container only) ---------- */
+  .sched-table{display:none;}
+  .sched-table td.sched-td-notes{white-space:normal; color:var(--text-3); min-width:200px;}
+  @container (min-width: 760px){
+    .sched-table{display:table;}
+    .sched-order-container .sched-card-list{display:none;}
   }
 
   /* ---------- Badges / chips ---------- */
@@ -697,8 +691,8 @@ function toast(msg){
 /* ---------------- store (db capability with in-memory demo fallback) ---------------- */
 let DB = null;
 let DEMO = false;
-const local = { clients:[], cleaners:[], orders:[], expenses:[], dayNotes:[] };
-const localSub = { clients:[], cleaners:[], orders:[], expenses:[], dayNotes:[] };
+const local = { clients:[], cleaners:[], orders:[], expenses:[], dayNotes:[], salaryOverrides:[] };
+const localSub = { clients:[], cleaners:[], orders:[], expenses:[], dayNotes:[], salaryOverrides:[] };
 const localPhotos = {}; // clientId -> [{id,dataUrl,caption,addedAt}]
 
 function notifyLocal(col){ (localSub[col]||[]).forEach(fn=>fn(local[col].slice())); }
@@ -763,7 +757,7 @@ async function deletePhoto(clientId, photoId){
 /* ---------------- app state ---------------- */
 const state = {
   view: 'schedule',
-  clients: [], cleaners: [], orders: [], expenses: [], dayNotes: [],
+  clients: [], cleaners: [], orders: [], expenses: [], dayNotes: [], salaryOverrides: [],
   clientSearch: '',
   dashPeriod: 'month',
   dashCustomFrom: monthBounds(new Date().getFullYear(), new Date().getMonth())[0],
@@ -774,7 +768,7 @@ const state = {
   financeCustomFrom: monthBounds(new Date().getFullYear(), new Date().getMonth())[0],
   financeCustomTo: todayISO(),
   modal: null, // {type:'clientDetail'|'clientForm'|'orderForm'|'day'|'cleanerForm'|'expenseForm', ...}
-  loadedFlags: {clients:false, cleaners:false, orders:false, expenses:false, dayNotes:false},
+  loadedFlags: {clients:false, cleaners:false, orders:false, expenses:false, dayNotes:false, salaryOverrides:false},
 };
 function isFullyLoaded(){ return DEMO || Object.values(state.loadedFlags).every(Boolean); }
 let activeCleanerSet = new Set(); // used by order form modal
@@ -805,6 +799,24 @@ function incomeInRange(from, to){
 }
 function expensesInRange(from, to){
   return state.expenses.filter(e=>e.date>=from && e.date<=to).reduce((s,e)=>s+(Number(e.amount)||0),0);
+}
+/* ---------------- payroll: 40% of a completed order, split across its assigned cleaners ---------------- */
+const SALARY_RATE = 0.4;
+function cleanerAutoSalary(cleanerId, from, to){
+  return state.orders
+    .filter(o=>o.status==='completed' && o.date>=from && o.date<=to && (o.cleanerIds||[]).includes(cleanerId))
+    .reduce((sum,o)=>{
+      const n = (o.cleanerIds||[]).length || 1;
+      return sum + (Number(o.amount)||0) * SALARY_RATE / n;
+    }, 0);
+}
+function salaryOverrideDocId(cleanerId, from, to){ return `${cleanerId}__${from}__${to}`; }
+function salaryOverrideFor(cleanerId, from, to){
+  return state.salaryOverrides.find(x=>x.id===salaryOverrideDocId(cleanerId, from, to));
+}
+function cleanerFinalSalary(cleanerId, from, to){
+  const ov = salaryOverrideFor(cleanerId, from, to);
+  return ov ? (Number(ov.amount)||0) : cleanerAutoSalary(cleanerId, from, to);
 }
 function upcomingOrders(days){
   const from = todayISO();
@@ -929,6 +941,7 @@ function startDataSubscriptions(){
   subscribeCollection('orders', list => { state.orders = list; state.loadedFlags.orders=true; render(); });
   subscribeCollection('expenses', list => { state.expenses = list.sort((a,b)=> b.date.localeCompare(a.date)); state.loadedFlags.expenses=true; render(); });
   subscribeCollection('dayNotes', list => { state.dayNotes = list; state.loadedFlags.dayNotes=true; render(); });
+  subscribeCollection('salaryOverrides', list => { state.salaryOverrides = list; state.loadedFlags.salaryOverrides=true; render(); });
 }
 function renderLogin(errorMsg){
   document.getElementById('modalRoot').innerHTML = '';
@@ -1107,7 +1120,7 @@ function seedDemoData(){
 }
 
 /* ---------------- render shell ---------------- */
-const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm','day']);
+const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm','day','salaryForm']);
 function render(){
   // While a form modal is open, skip re-rendering so live updates from other
   // viewers never overwrite text the user is mid-typing. Underlying state is
@@ -1190,6 +1203,7 @@ function renderModal(){
   else if(state.modal.type==='day') html = modalDay(state.modal.date);
   else if(state.modal.type==='cleanerForm') html = modalCleanerForm(state.modal.id);
   else if(state.modal.type==='expenseForm') html = modalExpenseForm(state.modal.id);
+  else if(state.modal.type==='salaryForm') html = modalSalaryForm(state.modal);
   else if(state.modal.type==='lightbox') html = modalLightbox(state.modal.src);
   else if(state.modal.type==='confirmDeleteOrder') html = modalConfirmDeleteOrder(state.modal);
   else if(state.modal.type==='confirmDeleteCleaner') html = modalConfirmDeleteCleaner(state.modal.id);
@@ -1568,21 +1582,7 @@ function modalClientDetail(id){
         <span>История заказов</span>
         <button class="btn btn-sm btn-primary" onclick="closeModal(); openOrderForm({clientId:'${c.id}'});">${ICONS.plus}Новый заказ</button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Дата</th><th>Клинеры</th><th>Статус</th><th class="num">Сумма</th></tr></thead>
-          <tbody>
-            ${orders.length===0 ? `<tr><td colspan="4" class="empty-note">Заказов ещё не было</td></tr>` :
-              orders.map(o=>`
-              <tr>
-                <td>${formatDateShort(o.date)}${o.time?', '+o.time:''} ${o.seriesId?ICONS.repeat:''}</td>
-                <td>${cleanerNamesLine(o).replace('· ','') || '—'}</td>
-                <td><span class="pill ${statusPillClass(o.status)}">${statusLabel(o.status)}</span></td>
-                <td class="num">${formatMoney(o.amount)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
+      ${renderScheduleOrderList(orders, {emptyText:'Заказов ещё не было'})}
     </div>
   </div>`;
 }
@@ -1695,7 +1695,7 @@ function renderScheduleOrderCard(o){
         <div class="sched-card-row2">
           <div class="sched-card-who">
             <span class="sched-card-name">${esc(name)}</span>
-            ${phone ? `<span class="sched-card-phone">${esc(phone)}</span>` : ''}
+            ${phone ? `<a class="sched-card-phone" href="${telHref}">${esc(phone)}</a>` : ''}
           </div>
           <span class="sched-card-amount">${formatMoney(o.amount)}</span>
         </div>
@@ -1703,9 +1703,44 @@ function renderScheduleOrderCard(o){
       </div>
       <div class="sched-card-actions">
         <button type="button" class="sched-icon-btn" title="Изменить" onclick="openOrderForm(null,'${o.id}')">${ICONS.edit}</button>
-        ${phone ? `<a class="sched-icon-btn" title="Позвонить" href="${telHref}">${ICONS.phone}</a>` : ''}
         <button type="button" class="sched-icon-btn danger" title="Удалить" onclick="deleteOrderPrompt('${o.id}', ${o.seriesId?`'${o.seriesId}'`:'null'}, '${o.date}')">${ICONS.x}</button>
       </div>
+    </div>`;
+}
+function renderScheduleTableRow(o){
+  const cl = clientById(o.clientId);
+  const name = o.clientName || (cl&&cl.name) || 'Клиент удалён';
+  const title = (cl && cl.address) ? cl.address : name;
+  const phone = cl?.phone || '';
+  const telHref = phone ? 'tel:' + phone.replace(/[^\d+]/g,'') : '';
+  const color = serviceColor(o.serviceId);
+  return `
+    <tr>
+      <td>${esc(title)} ${o.seriesId?ICONS.repeat:''}</td>
+      <td>${esc(name)}</td>
+      <td>${phone ? `<a href="${telHref}" style="color:inherit;">${esc(phone)}</a>` : '—'}</td>
+      <td><span class="sched-card-when">${formatDateTimeSched(o.date, o.time)}</span> <span class="pill ${statusPillClass(o.status)}" style="margin-left:6px;">${statusLabel(o.status)}</span></td>
+      <td>${o.service ? `${color?`<span class="service-dot" style="background:${color}"></span>`:''}${esc(o.service)}` : '—'}</td>
+      <td class="num" style="font-weight:700;">${formatMoney(o.amount)}</td>
+      <td class="sched-td-notes">${esc(o.notes||'—')}</td>
+      <td>
+        <button type="button" class="btn btn-sm" title="Изменить" onclick="openOrderForm(null,'${o.id}')">${ICONS.edit}</button>
+        <button type="button" class="btn btn-sm btn-danger" title="Удалить" onclick="deleteOrderPrompt('${o.id}', ${o.seriesId?`'${o.seriesId}'`:'null'}, '${o.date}')">${ICONS.x}</button>
+      </td>
+    </tr>`;
+}
+function renderScheduleOrderList(orders, opts){
+  opts = opts || {};
+  if(orders.length===0) return `<div class="empty-note">${opts.emptyText||'Заказов нет'}</div>`;
+  return `
+    <div class="sched-order-container">
+      <div class="table-wrap">
+        <table class="sched-table">
+          <thead><tr><th>Адрес</th><th>Клиент</th><th>Телефон</th><th>Дата и время</th><th>Услуга</th><th class="num">Сумма</th><th>Заметки</th><th></th></tr></thead>
+          <tbody>${orders.map(o=>renderScheduleTableRow(o)).join('')}</tbody>
+        </table>
+      </div>
+      <div class="sched-card-list">${orders.map(o=>renderScheduleOrderCard(o)).join('')}</div>
     </div>`;
 }
 function renderSchedule(){
@@ -1775,10 +1810,8 @@ function renderSchedule(){
       <div class="panel-head">
         <div><h2>Заказы на сегодня</h2><div class="sub">${formatDateWithDow(todayStr)}</div></div>
       </div>
-      <div class="sched-card-list">
-        ${todayOrders.length===0 ? `<div class="empty-note">На сегодня заказов нет</div>` :
-          todayOrders.map(o=>renderScheduleOrderCard(o)).join('')}
-      </div>
+      ${renderDayNoteBox(todayStr, 'today_note')}
+      ${renderScheduleOrderList(todayOrders, {emptyText:'На сегодня заказов нет'})}
     </div>
   `;
 }
@@ -1788,38 +1821,41 @@ function calShift(delta){
   state.calMonth = m; state.calYear = y;
   render();
 }
-function onDayNoteInput(){
-  const actions = document.getElementById('day_note_actions');
+function renderDayNoteBox(dateStr, idPrefix){
+  const noteText = dayNoteFor(dateStr);
+  return `
+    <div class="field" style="margin-bottom:16px;">
+      <label>Заметка на этот день</label>
+      <textarea id="${idPrefix}_text" placeholder="Например: ключи у соседей, домофон не работает…" oninput="onDayNoteInput('${idPrefix}')">${esc(noteText)}</textarea>
+      <div class="form-actions" id="${idPrefix}_actions" style="justify-content:flex-end; border-top:none; padding-top:8px; margin-top:0;" hidden>
+        <button type="button" class="btn btn-sm btn-primary" onclick="saveDayNote('${dateStr}','${idPrefix}')">Сохранить заметку</button>
+      </div>
+    </div>`;
+}
+function onDayNoteInput(idPrefix){
+  const actions = document.getElementById(idPrefix+'_actions');
   if(actions) actions.hidden = false;
 }
-async function saveDayNote(dateStr){
-  const text = document.getElementById('day_note_text').value.trim();
+async function saveDayNote(dateStr, idPrefix){
+  const text = document.getElementById(idPrefix+'_text').value.trim();
   if(text){
     await setDocById('dayNotes', dateStr, {text, updatedAt:new Date().toISOString()});
   }else{
     await deleteDocById('dayNotes', dateStr);
   }
-  const actions = document.getElementById('day_note_actions');
+  const actions = document.getElementById(idPrefix+'_actions');
   if(actions) actions.hidden = true;
   toast('Заметка сохранена');
 }
 function modalDay(dateStr){
   const orders = ordersOnDate(dateStr);
-  const noteText = dayNoteFor(dateStr);
   return `
   <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
     <div class="modal">
       <div class="modal-head"><h3>${formatDateWithDow(dateStr)}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
-      <div class="field" style="margin-bottom:16px;">
-        <label>Заметка на этот день</label>
-        <textarea id="day_note_text" placeholder="Например: ключи у соседей, домофон не работает…" oninput="onDayNoteInput()">${esc(noteText)}</textarea>
-        <div class="form-actions" id="day_note_actions" style="justify-content:flex-end; border-top:none; padding-top:8px; margin-top:0;" hidden>
-          <button type="button" class="btn btn-sm btn-primary" onclick="saveDayNote('${dateStr}')">Сохранить заметку</button>
-        </div>
-      </div>
-      <div class="sched-card-list" style="margin-bottom:14px;">
-        ${orders.length===0 ? `<div class="empty-note">На этот день заказов нет</div>` :
-          orders.map(o=>renderScheduleOrderCard(o)).join('')}
+      ${renderDayNoteBox(dateStr, 'day_note')}
+      <div style="margin-bottom:14px;">
+        ${renderScheduleOrderList(orders, {emptyText:'На этот день заказов нет'})}
       </div>
       <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:0;">
         <button class="btn btn-primary" onclick="closeModal(); openOrderForm({date:'${dateStr}'});">${ICONS.plus}Заказ на эту дату</button>
@@ -2300,6 +2336,32 @@ function renderFinances(){
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Зарплаты клинеров</h2><div class="sub">40% от суммы заказа, поровну между клинерами на заказе, ${p.label}</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Клинер</th><th class="num">Авто (40%)</th><th class="num">К выплате</th><th></th></tr></thead>
+          <tbody>
+            ${state.cleaners.length===0 ? `<tr><td colspan="4" class="empty-note">Клинеров пока нет — добавьте во вкладке «Клинеры»</td></tr>` :
+              state.cleaners.map(k=>{
+                const auto = cleanerAutoSalary(k.id, p.from, p.to);
+                const override = salaryOverrideFor(k.id, p.from, p.to);
+                const final = override ? (Number(override.amount)||0) : auto;
+                return `
+                <tr>
+                  <td><span class="cleaner-chip"><span class="cleaner-dot" style="background:${k.color}"></span>${esc(k.name)}</span></td>
+                  <td class="num">${formatMoney(auto)}</td>
+                  <td class="num" style="font-weight:700;">${formatMoney(final)}${override?` <span class="pill pill-neutral" style="margin-left:6px;">изменено</span>`:''}</td>
+                  <td style="text-align:right;"><button class="btn btn-sm" onclick="openSalaryForm('${k.id}','${p.from}','${p.to}')">${ICONS.edit}</button></td>
+                </tr>`;
+              }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="two-col-even">
       <div class="panel">
         <div class="panel-head">
@@ -2385,6 +2447,45 @@ async function submitExpenseForm(ev, id){
   closeModal();
   toast(id?'Расход обновлён':'Расход добавлен');
   return false;
+}
+function openSalaryForm(cleanerId, from, to){ openModal({type:'salaryForm', cleanerId, from, to}); }
+function modalSalaryForm(m){
+  const {cleanerId, from, to} = m;
+  const k = cleanerById(cleanerId);
+  const auto = cleanerAutoSalary(cleanerId, from, to);
+  const override = salaryOverrideFor(cleanerId, from, to);
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>Зарплата — ${esc(k?.name||'')}</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <p style="font-size:12.5px; color:var(--text-3); margin:0 0 14px;">Период: ${formatDateShort(from)} — ${formatDateShort(to)}. Авто-расчёт (40% от заказов, поровну между клинерами): <b class="num">${formatMoney(auto)}</b></p>
+      <form onsubmit="return submitSalaryForm(event,'${cleanerId}','${from}','${to}')">
+        <div class="field"><label>К выплате, ₽</label><input type="number" id="sf_amount" min="0" step="1" value="${override ? (Number(override.amount)||0) : Math.round(auto)}"></div>
+        <div class="field"><label>Комментарий</label><input type="text" id="sf_note" placeholder="Например: аванс уже выплачен" value="${esc(override?.note||'')}"></div>
+        <div class="form-actions" style="justify-content:space-between;">
+          <div>${override ? `<button type="button" class="btn btn-sm btn-danger" onclick="resetSalaryOverride('${cleanerId}','${from}','${to}')">Сбросить к авто</button>` : ''}</div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+async function submitSalaryForm(ev, cleanerId, from, to){
+  ev.preventDefault();
+  const amount = Number(document.getElementById('sf_amount').value)||0;
+  const note = document.getElementById('sf_note').value.trim();
+  await setDocById('salaryOverrides', salaryOverrideDocId(cleanerId, from, to), {cleanerId, from, to, amount, note, updatedAt:new Date().toISOString()});
+  closeModal();
+  toast('Зарплата сохранена');
+  return false;
+}
+async function resetSalaryOverride(cleanerId, from, to){
+  await deleteDocById('salaryOverrides', salaryOverrideDocId(cleanerId, from, to));
+  closeModal();
+  toast('Возвращено к авто-расчёту');
 }
 async function doDeleteExpense(id){
   await deleteDocById('expenses', id);
