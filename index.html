@@ -818,6 +818,28 @@ function cleanerFinalSalary(cleanerId, from, to){
   const ov = salaryOverrideFor(cleanerId, from, to);
   return ov ? (Number(ov.amount)||0) : cleanerAutoSalary(cleanerId, from, to);
 }
+/* Keeps one "Зарплата клинерам" expense per cleaner+period mirroring cleanerFinalSalary().
+   Reuses the salary-override doc id in the (separate) expenses collection, so it's a
+   straightforward upsert/delete — not a write on every render, since it's a no-op
+   whenever the linked expense already matches the current amount. */
+async function ensureSalaryExpensesSynced(from, to){
+  for(const k of state.cleaners){
+    const amount = Math.round(cleanerFinalSalary(k.id, from, to));
+    const id = salaryOverrideDocId(k.id, from, to);
+    const existing = state.expenses.find(e=>e.id===id);
+    if(amount > 0){
+      if(!existing || Math.round(Number(existing.amount)||0)!==amount){
+        await setDocById('expenses', id, {
+          date: to, amount, category:'Зарплата клинерам',
+          description: `Зарплата — ${k.name}`,
+          cleanerId: k.id, salaryFrom: from, salaryTo: to, auto: true,
+        });
+      }
+    }else if(existing){
+      await deleteDocById('expenses', id);
+    }
+  }
+}
 function upcomingOrders(days){
   const from = todayISO();
   const toD = new Date(); toD.setDate(toD.getDate()+days);
@@ -2269,6 +2291,7 @@ async function doDeleteCleaner(id){
    ========================================================================= */
 function renderFinances(){
   const p = periodBounds(state.financePeriod, state.financeCustomFrom, state.financeCustomTo);
+  ensureSalaryExpensesSynced(p.from, p.to); // fire-and-forget; no-op once amounts already match
   const totalIncome = incomeInRange(p.from, p.to);
   const totalExpense = expensesInRange(p.from, p.to);
   const prevIncome = incomeInRange(p.prevFrom, p.prevTo);
@@ -2393,13 +2416,15 @@ function renderFinances(){
             <div class="row-item">
               <div class="row-avatar" style="background:var(--status-pending-bg); color:var(--status-pending-fg); font-size:11px;">${formatDateShort(e.date)}</div>
               <div class="row-main">
-                <div class="row-title">${esc(e.category)}</div>
+                <div class="row-title">${esc(e.category)} ${e.auto?`<span class="pill pill-neutral">авто</span>`:''}</div>
                 <div class="row-sub">${esc(e.description||'')}</div>
               </div>
               <div class="row-end" style="display:flex; align-items:center; gap:8px;">
                 <div class="num" style="font-weight:600;">-${formatMoney(e.amount)}</div>
-                <button class="btn btn-sm" onclick="openExpenseForm('${e.id}')">${ICONS.edit}</button>
-                <button class="btn btn-sm btn-danger" onclick="doDeleteExpense('${e.id}')">${ICONS.trash}</button>
+                ${e.auto
+                  ? `<button class="btn btn-sm" title="Изменить в зарплатах" onclick="openSalaryForm('${e.cleanerId}','${e.salaryFrom}','${e.salaryTo}')">${ICONS.edit}</button>`
+                  : `<button class="btn btn-sm" onclick="openExpenseForm('${e.id}')">${ICONS.edit}</button>
+                     <button class="btn btn-sm btn-danger" onclick="doDeleteExpense('${e.id}')">${ICONS.trash}</button>`}
               </div>
             </div>`).join('')}
         </div>
