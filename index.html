@@ -1186,7 +1186,7 @@ function seedDemoData(){
 }
 
 /* ---------------- render shell ---------------- */
-const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm','day','salaryForm','restoreOrderForm']);
+const FORM_MODAL_TYPES = new Set(['clientForm','orderForm','cleanerForm','expenseForm','day','salaryForm','restoreOrderForm','repeatOrderForm']);
 function render(){
   // While a form modal is open, skip re-rendering so live updates from other
   // viewers never overwrite text the user is mid-typing. Underlying state is
@@ -1271,6 +1271,7 @@ function renderModal(){
   else if(state.modal.type==='expenseForm') html = modalExpenseForm(state.modal.id);
   else if(state.modal.type==='salaryForm') html = modalSalaryForm(state.modal);
   else if(state.modal.type==='restoreOrderForm') html = modalRestoreOrderForm(state.modal);
+  else if(state.modal.type==='repeatOrderForm') html = modalRepeatOrderForm(state.modal);
   else if(state.modal.type==='noteView') html = modalNoteView(state.modal);
   else if(state.modal.type==='lightbox') html = modalLightbox(state.modal.src);
   else if(state.modal.type==='confirmDeleteOrder') html = modalConfirmDeleteOrder(state.modal);
@@ -1452,6 +1453,50 @@ async function submitRestoreOrderForm(ev, orderId){
   toast('Заказ восстановлен');
   return false;
 }
+function openRepeatOrderForm(orderId){ openModal({type:'repeatOrderForm', orderId}); }
+function modalRepeatOrderForm(m){
+  const o = state.orders.find(x=>x.id===m.orderId);
+  if(!o) return `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal"><div class="empty-note">Заказ не найден</div></div></div>`;
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>Повторить заказ</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <p style="font-size:12.5px; color:var(--text-3); margin:0 0 14px;">${esc(o.clientName||'Клиент удалён')}${o.service?' · '+esc(o.service):''} · ${o.isRange?formatOrderAmount(o):formatMoney(o.amount)}. Всё, кроме даты и времени, копируется из этого заказа.</p>
+      <form onsubmit="return submitRepeatOrderForm(event,'${o.id}')">
+        <div class="field-row">
+          <div class="field"><label>Дата *</label><input type="date" id="rpf_date" required value="${todayISO()}"></div>
+          <div class="field"><label>Время</label><input type="time" id="rpf_time" value="${o.time||''}"></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary">Создать заказ</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+async function submitRepeatOrderForm(ev, orderId){
+  ev.preventDefault();
+  const src = state.orders.find(x=>x.id===orderId);
+  if(!src) return false;
+  const date = document.getElementById('rpf_date').value;
+  const time = document.getElementById('rpf_time').value;
+  if(!date) return false;
+  await addDoc('orders', {
+    clientId: src.clientId, clientName: src.clientName,
+    date, time,
+    amount: src.amount ?? 0, isRange: !!src.isRange, amountMin: src.amountMin ?? null, amountMax: src.amountMax ?? null,
+    status: 'scheduled',
+    service: src.service || '', serviceId: src.serviceId ?? null, area: src.area ?? null,
+    notes: src.notes || '',
+    cleanerIds: src.cleanerIds || [], cleanerNames: src.cleanerNames || [],
+    seriesId: null, recurrenceType: 'none',
+    createdAt: new Date().toISOString(),
+  });
+  closeModal();
+  toast('Заказ создан');
+  return false;
+}
 function cleanerNamesLine(o){
   const names = (o.cleanerNames&&o.cleanerNames.length) ? o.cleanerNames : (o.cleanerIds||[]).map(id=>cleanerById(id)?.name).filter(Boolean);
   return names.length ? '· '+names.join(', ') : '';
@@ -1570,20 +1615,27 @@ function formatCompact(n){
    Клиенты
    ========================================================================= */
 function renderClients(){
+  return `
+    <div class="topbar">
+      <div><h1>Клиенты</h1><div class="sub">База клиентов, история заказов и LTV</div></div>
+      <div class="topbar-actions">
+        <div class="search-box">${ICONS.search}<input type="text" placeholder="Поиск по имени, телефону, адресу" value="${esc(state.clientSearch)}" oninput="filterClients(this.value)"></div>
+        <button class="btn btn-primary" onclick="openClientForm()">${ICONS.plus}Клиент</button>
+      </div>
+    </div>
+    <div id="clientGridWrap">${renderClientGrid()}</div>
+  `;
+}
+function renderClientGrid(){
   const q = state.clientSearch.trim().toLowerCase();
   const list = state.clients.filter(c=>{
     if(!q) return true;
     return (c.name||'').toLowerCase().includes(q) || (c.phone||'').toLowerCase().includes(q) || (c.address||'').toLowerCase().includes(q);
   });
+  if(list.length===0){
+    return `<div class="panel"><div class="empty-note">${state.clients.length===0?'Клиентов пока нет — добавьте первого.':'Ничего не найдено'}</div></div>`;
+  }
   return `
-    <div class="topbar">
-      <div><h1>Клиенты</h1><div class="sub">База клиентов, история заказов и LTV</div></div>
-      <div class="topbar-actions">
-        <div class="search-box">${ICONS.search}<input type="text" placeholder="Поиск по имени, телефону, адресу" value="${esc(state.clientSearch)}" oninput="state.clientSearch=this.value; render();"></div>
-        <button class="btn btn-primary" onclick="openClientForm()">${ICONS.plus}Клиент</button>
-      </div>
-    </div>
-    ${list.length===0 ? `<div class="panel"><div class="empty-note">${state.clients.length===0?'Клиентов пока нет — добавьте первого.':'Ничего не найдено'}</div></div>` : `
     <div class="client-grid">
       ${list.map(c=>{
         const ltv = clientLTV(c.id);
@@ -1597,12 +1649,18 @@ function renderClients(){
               <div class="row-sub">${esc(c.address||c.phone||'')}</div>
             </div>
           </div>
-          <div class="row-sub">${last ? 'Последний заказ: '+formatDateShort(last.date)+' · '+formatMoney(last.amount) : 'Заказов ещё не было'}</div>
+          <div class="row-sub">${last ? 'Последний заказ: '+formatDateShort(last.date)+' · '+formatOrderAmount(last) : 'Заказов ещё не было'}</div>
           <div class="ltv"><span style="font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase;">LTV</span><b>${formatMoney(ltv)}</b></div>
         </button>`;
       }).join('')}
-    </div>`}
-  `;
+    </div>`;
+}
+/* Update just the grid, not the whole view — re-rendering renderClients() would
+   recreate the <input> and drop keyboard focus after every keystroke. */
+function filterClients(value){
+  state.clientSearch = value;
+  const wrap = document.getElementById('clientGridWrap');
+  if(wrap) wrap.innerHTML = renderClientGrid();
 }
 
 function openClientForm(id){ openModal({type:'clientForm', id: id||null}); }
@@ -1710,7 +1768,7 @@ function modalClientDetail(id){
         <span>История заказов</span>
         <button class="btn btn-sm btn-primary" onclick="closeModal(); openOrderForm({clientId:'${c.id}'});">${ICONS.plus}Новый заказ</button>
       </div>
-      ${renderScheduleOrderList(orders, {emptyText:'Заказов ещё не было'})}
+      ${renderScheduleOrderList(orders, {emptyText:'Заказов ещё не было', repeatable:true})}
     </div>
   </div>`;
 }
@@ -1804,7 +1862,8 @@ async function doDeleteClient(id){
 /* =========================================================================
    Расписание / Календарь
    ========================================================================= */
-function renderScheduleOrderCard(o){
+function renderScheduleOrderCard(o, opts){
+  opts = opts || {};
   const cl = clientById(o.clientId);
   const name = o.clientName || (cl&&cl.name) || 'Клиент удалён';
   const title = (cl && cl.address) ? cl.address : name;
@@ -1831,11 +1890,13 @@ function renderScheduleOrderCard(o){
       </div>
       <div class="sched-card-actions">
         <button type="button" class="sched-icon-btn" title="Изменить" onclick="openOrderForm(null,'${o.id}')">${ICONS.edit}</button>
+        ${opts.repeatable ? `<button type="button" class="sched-icon-btn" title="Повторить заказ" onclick="openRepeatOrderForm('${o.id}')">${ICONS.repeat}</button>` : ''}
         <button type="button" class="sched-icon-btn danger" title="Удалить" onclick="deleteOrderPrompt('${o.id}', ${o.seriesId?`'${o.seriesId}'`:'null'}, '${o.date}')">${ICONS.x}</button>
       </div>
     </div>`;
 }
-function renderScheduleTableRow(o){
+function renderScheduleTableRow(o, opts){
+  opts = opts || {};
   const cl = clientById(o.clientId);
   const name = o.clientName || (cl&&cl.name) || 'Клиент удалён';
   const title = (cl && cl.address) ? cl.address : name;
@@ -1851,8 +1912,9 @@ function renderScheduleTableRow(o){
       <td>${o.service ? `${color?`<span class="service-dot" style="background:${color}"></span>`:''}${esc(o.service)}` : '—'}</td>
       <td class="num" style="font-weight:700;">${formatOrderAmount(o)}</td>
       <td class="sched-td-notes">${esc(o.notes||'—')}</td>
-      <td>
+      <td style="white-space:nowrap;">
         <button type="button" class="btn btn-sm" title="Изменить" onclick="openOrderForm(null,'${o.id}')">${ICONS.edit}</button>
+        ${opts.repeatable ? `<button type="button" class="btn btn-sm" title="Повторить заказ" onclick="openRepeatOrderForm('${o.id}')">${ICONS.repeat}</button>` : ''}
         <button type="button" class="btn btn-sm btn-danger" title="Удалить" onclick="deleteOrderPrompt('${o.id}', ${o.seriesId?`'${o.seriesId}'`:'null'}, '${o.date}')">${ICONS.x}</button>
       </td>
     </tr>`;
@@ -1865,10 +1927,10 @@ function renderScheduleOrderList(orders, opts){
       <div class="table-wrap">
         <table class="sched-table">
           <thead><tr><th>Адрес</th><th>Клиент</th><th>Телефон</th><th>Дата и время</th><th>Услуга</th><th class="num">Сумма</th><th>Заметки</th><th></th></tr></thead>
-          <tbody>${orders.map(o=>renderScheduleTableRow(o)).join('')}</tbody>
+          <tbody>${orders.map(o=>renderScheduleTableRow(o, opts)).join('')}</tbody>
         </table>
       </div>
-      <div class="sched-card-list">${orders.map(o=>renderScheduleOrderCard(o)).join('')}</div>
+      <div class="sched-card-list">${orders.map(o=>renderScheduleOrderCard(o, opts)).join('')}</div>
     </div>`;
 }
 function renderSchedule(){
