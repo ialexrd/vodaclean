@@ -402,6 +402,10 @@
     width:100%;
   }
   .client-card:hover{border-color:var(--accent);}
+  /* Safari doesn't stretch flex children of a <button>, so force direct children
+     to full width — otherwise rows (esp. LTV) shrink-wrap: amount glued to the
+     label, divider stops short of the card edge. */
+  .client-card > *{width:100%;}
   .client-card-top{display:flex; align-items:center; gap:10px;}
   .client-card .ltv{margin-top:auto; display:flex; justify-content:space-between; align-items:baseline; padding-top:9px; border-top:1px solid var(--border-soft);}
   .client-card .ltv b{font-family:'IBM Plex Mono'; font-size:15px;}
