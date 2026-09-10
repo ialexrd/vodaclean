@@ -832,6 +832,9 @@ function cleanerFinalSalary(cleanerId, from, to){
   const ov = salaryOverrideFor(cleanerId, from, to);
   return ov ? (Number(ov.amount)||0) : cleanerAutoSalary(cleanerId, from, to);
 }
+function cleanerOrderCount(cleanerId, from, to){
+  return state.orders.filter(o=>o.status==='completed' && o.date>=from && o.date<=to && (o.cleanerIds||[]).includes(cleanerId)).length;
+}
 /* Keeps one "Зарплата клинерам" expense per cleaner+period mirroring cleanerFinalSalary().
    Reuses the salary-override doc id in the (separate) expenses collection, so it's a
    straightforward upsert/delete — not a write on every render, since it's a no-op
@@ -2559,7 +2562,7 @@ function renderFinances(){
 
     <div class="panel">
       <div class="panel-head">
-        <div><h2>Зарплаты клинеров</h2><div class="sub">40% от суммы заказа, поровну между клинерами на заказе, ${p.label}</div></div>
+        <div><h2>Зарплаты клинеров</h2><div class="sub">40% от суммы заказа, поровну между клинерами на заказе, ${p.label}. В скобках — число выполненных заказов за период</div></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -2570,9 +2573,10 @@ function renderFinances(){
                 const auto = cleanerAutoSalary(k.id, p.from, p.to);
                 const override = salaryOverrideFor(k.id, p.from, p.to);
                 const final = override ? (Number(override.amount)||0) : auto;
+                const orderCount = cleanerOrderCount(k.id, p.from, p.to);
                 return `
                 <tr>
-                  <td><span class="cleaner-chip"><span class="cleaner-dot" style="background:${k.color}"></span>${esc(k.name)}</span></td>
+                  <td><span class="cleaner-chip"><span class="cleaner-dot" style="background:${k.color}"></span>${esc(k.name)} <span style="color:var(--text-3); font-weight:500;">(${orderCount})</span></span></td>
                   <td class="num">${formatMoney(auto)}</td>
                   <td class="num" style="font-weight:700;">${formatMoney(final)}${override?` <span class="pill pill-neutral" style="margin-left:6px;">изменено</span>`:''}</td>
                   <td style="text-align:right;"><button class="btn btn-sm" onclick="openSalaryForm('${k.id}','${p.from}','${p.to}')">${ICONS.edit}</button></td>
