@@ -359,6 +359,9 @@
   .field input[type="date"], .field input[type="time"], .field input[type="password"], .field select, .field textarea{
     border:1px solid var(--border); background:var(--bg); color:var(--text);
     border-radius:12px; padding:9px 12px; width:100%;
+    /* 16px+ keeps iOS Safari from auto-zooming the page when a field is focused
+       (it zooms any focused input/select/textarea whose font-size is under 16px). */
+    font-size:16px;
   }
   .field textarea{resize:vertical; min-height:56px;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -387,7 +390,7 @@
   .search-box{position:relative; max-width:320px; flex:1;}
   .search-box input{
     width:100%; padding:9px 14px 9px 35px; border-radius:var(--radius-pill); border:1px solid var(--border);
-    background:var(--surface); color:var(--text);
+    background:var(--surface); color:var(--text); font-size:16px;
   }
   .search-box svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-3);}
 
@@ -423,9 +426,12 @@
   .cal-daynum{font-size:12px; font-weight:700; color:var(--text-2);}
   .cal-cell.today .cal-daynum{color:var(--accent-strong);}
   .cal-chip{
+    display:flex; align-items:center;
     font-size:10.5px; font-weight:600; padding:2px 6px; border-radius:6px; background:var(--accent-soft); color:var(--accent-strong);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left;
+    overflow:hidden; text-align:left;
   }
+  .cal-chip-label{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cal-note-star{flex:0 0 auto; margin-left:3px; cursor:pointer; color:#c99a1e;}
   .cal-chip.done{background:var(--status-good-bg); color:var(--status-good-fg);}
   .cal-chip.cancel{background:var(--status-bad-bg); color:var(--status-bad-fg); text-decoration:line-through;}
   .cal-more{font-size:10.5px; color:var(--text-3); font-weight:600;}
@@ -616,12 +622,13 @@ const RU_DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const RU_DOW_ACC = ['понедельник','вторник','среду','четверг','пятницу','субботу','воскресенье'];
 const EXPENSE_CATEGORIES = ['Химия и расходники','Зарплата клинерам','Транспорт','Аренда/офис','Реклама','Инвентарь и техника','Прочее'];
 const SERVICE_TYPES = [
-  {id:'support',    label:'Поддерживающая уборка',      color:'#2a78d6'},
-  {id:'general',    label:'Генеральная уборка',          color:'#1baf7a'},
-  {id:'renovation', label:'Уборка после ремонта',        color:'#c9862a'},
-  {id:'windows',    label:'Мойка окон',                  color:'#7a6ae0'},
-  {id:'kitchen',    label:'Генеральная уборка кухни',    color:'#e87ba4'},
-  {id:'bathroom',   label:'Генеральная уборка санузлов', color:'#e0625f'},
+  {id:'support',    label:'Поддерживающая уборка',      color:'#2fae5b'}, // зелёный
+  {id:'general',    label:'Генеральная уборка',          color:'#e0b400'}, // жёлтый
+  {id:'renovation', label:'Уборка после ремонта',        color:'#e5484d'}, // красный
+  {id:'windows',    label:'Мойка окон',                  color:'#2a78d6'}, // синий
+  {id:'offices',    label:'Офисы',                       color:'#e87ba4'}, // розовый
+  {id:'kitchen',    label:'Генеральная уборка кухни',    color:'#1c1c1e'}, // чёрный
+  {id:'bathroom',   label:'Генеральная уборка санузлов', color:'#8b5e3c'}, // коричневый
 ];
 function serviceById(id){ return SERVICE_TYPES.find(s=>s.id===id); }
 function serviceColor(serviceId){ return (serviceById(serviceId)||{}).color || null; }
@@ -655,6 +662,13 @@ function todayISO(){ return toISO(new Date()); }
 function toISO(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
 function parseISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); }
 function formatMoney(n){ n = Number(n)||0; return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(n)+' ₽'; }
+function formatOrderAmount(o){
+  if(o.isRange){
+    const fmt = n => new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Number(n)||0);
+    return `${fmt(o.amountMin)}–${fmt(o.amountMax)} ₽`;
+  }
+  return formatMoney(o.amount);
+}
 function formatDateLong(s){ if(!s) return '—'; const d=parseISO(s); return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
 function formatDateShort(s){ if(!s) return '—'; const d=parseISO(s); return `${d.getDate()} ${RU_MONTHS[d.getMonth()].slice(0,3)}`; }
 function formatDateWithDow(s){ if(!s) return '—'; const d=parseISO(s); const dow = RU_DOW[(d.getDay()+6)%7]; return `${dow}, ${d.getDate()} ${RU_MONTHS[d.getMonth()]}`; }
@@ -782,7 +796,7 @@ function ordersForClient(clientId){
   return state.orders.filter(o=>o.clientId===clientId).sort((a,b)=> (b.date+ (b.time||'')).localeCompare(a.date+(a.time||'')));
 }
 function clientLTV(clientId){
-  return state.orders.filter(o=>o.clientId===clientId && o.status==='completed').reduce((s,o)=>s+(Number(o.amount)||0),0);
+  return state.orders.filter(o=>o.clientId===clientId && o.status==='completed' && !o.isRange).reduce((s,o)=>s+(Number(o.amount)||0),0);
 }
 function clientLastOrder(clientId){
   const list = ordersForClient(clientId).filter(o=>o.status!=='cancelled');
@@ -795,7 +809,7 @@ function monthBounds(year, month){
   return [from, to];
 }
 function incomeInRange(from, to){
-  return state.orders.filter(o=>o.status==='completed' && o.date>=from && o.date<=to).reduce((s,o)=>s+(Number(o.amount)||0),0);
+  return state.orders.filter(o=>o.status==='completed' && !o.isRange && o.date>=from && o.date<=to).reduce((s,o)=>s+(Number(o.amount)||0),0);
 }
 function expensesInRange(from, to){
   return state.expenses.filter(e=>e.date>=from && e.date<=to).reduce((s,e)=>s+(Number(e.amount)||0),0);
@@ -804,7 +818,7 @@ function expensesInRange(from, to){
 const SALARY_RATE = 0.4;
 function cleanerAutoSalary(cleanerId, from, to){
   return state.orders
-    .filter(o=>o.status==='completed' && o.date>=from && o.date<=to && (o.cleanerIds||[]).includes(cleanerId))
+    .filter(o=>o.status==='completed' && !o.isRange && o.date>=from && o.date<=to && (o.cleanerIds||[]).includes(cleanerId))
     .reduce((sum,o)=>{
       const n = (o.cleanerIds||[]).length || 1;
       return sum + (Number(o.amount)||0) * SALARY_RATE / n;
@@ -854,6 +868,20 @@ function ordersOnDate(dateStr){
 function dayNoteFor(dateStr){
   const n = state.dayNotes.find(x=>x.id===dateStr);
   return n?.text || '';
+}
+function showOrderNote(orderId){
+  const o = state.orders.find(x=>x.id===orderId);
+  if(!o || !o.notes) return;
+  openModal({type:'noteView', text:o.notes});
+}
+function modalNoteView(m){
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal" style="max-width:360px;">
+      <div class="modal-head"><h3>Заметка</h3><button class="modal-close" onclick="closeModal()">${ICONS.x}</button></div>
+      <p style="font-size:13.5px; color:var(--text); white-space:pre-wrap; margin:0;">${esc(m.text)}</p>
+    </div>
+  </div>`;
 }
 function completedOrdersInRange(from, to){
   return state.orders.filter(o=>o.status==='completed' && o.date>=from && o.date<=to);
@@ -960,10 +988,24 @@ function startDataSubscriptions(){
   dataSubscribed = true;
   subscribeCollection('clients', list => { state.clients = list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')); state.loadedFlags.clients=true; render(); });
   subscribeCollection('cleaners', list => { state.cleaners = list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')); state.loadedFlags.cleaners=true; render(); });
-  subscribeCollection('orders', list => { state.orders = list; state.loadedFlags.orders=true; render(); });
+  subscribeCollection('orders', list => { state.orders = list; state.loadedFlags.orders=true; autoCompletePastOrders(); render(); });
   subscribeCollection('expenses', list => { state.expenses = list.sort((a,b)=> b.date.localeCompare(a.date)); state.loadedFlags.expenses=true; render(); });
   subscribeCollection('dayNotes', list => { state.dayNotes = list; state.loadedFlags.dayNotes=true; render(); });
   subscribeCollection('salaryOverrides', list => { state.salaryOverrides = list; state.loadedFlags.salaryOverrides=true; render(); });
+  setInterval(autoCompletePastOrders, 5*60*1000);
+}
+/* Orders left "scheduled" past their day (or past 20:00 on the day itself) with nobody
+   having touched their status are treated as done automatically. Range-priced orders
+   (isRange) are skipped — their status/income stay manual until someone resolves the
+   price. Idempotent: only orders still 'scheduled' match, so this converges after the
+   one snapshot round-trip its own writes cause. */
+function autoCompletePastOrders(){
+  if(!state.orders.length) return;
+  const todayStr = todayISO();
+  const nowTime = new Date().toTimeString().slice(0,5);
+  state.orders
+    .filter(o => o.status==='scheduled' && !o.isRange && (o.date < todayStr || (o.date===todayStr && nowTime>='20:00')))
+    .forEach(o => updateDocById('orders', o.id, {status:'completed'}));
 }
 function renderLogin(errorMsg){
   document.getElementById('modalRoot').innerHTML = '';
@@ -1060,9 +1102,10 @@ function seedDemoData(){
 
   /* ---- orders ---- */
   const orders = [];
-  function addOrder({clientId, date, time, amount, cleaners, status, service='', serviceId=null, notes='', seriesId=null, recurrenceType='none'}){
+  function addOrder({clientId, date, time, amount, cleaners, status, service='', serviceId=null, notes='', seriesId=null, recurrenceType='none', isRange=false, amountMin=null, amountMax=null}){
     orders.push({
       id: uid('o'), clientId, clientName: clName(clientId), date, time, amount,
+      isRange, amountMin, amountMax,
       cleanerIds: cleaners, cleanerNames: cleaners.map(cName),
       status, service, serviceId, notes, seriesId, recurrenceType, createdAt: date,
     });
@@ -1106,6 +1149,7 @@ function seedDemoData(){
   addOrder({clientId:c3,  date:dm(0,10), time:'10:00', amount:2700, cleaners:[k1], status:'scheduled', service:'Генеральная уборка', serviceId:'general', notes:''});
   addOrder({clientId:c10, date:dm(0,16), time:'15:00', amount:3900, cleaners:[k4], status:'scheduled', service:'Мойка окон', serviceId:'windows', notes:'Мытьё окон'});
   addOrder({clientId:c6,  date:dm(0,21), time:'11:00', amount:3000, cleaners:[k3], status:'scheduled', service:'Поддерживающая уборка', serviceId:'support', notes:''});
+  addOrder({clientId:c8,  date:dm(0,14), time:'12:00', amount:0, isRange:true, amountMin:4000, amountMax:6000, cleaners:[k2], status:'scheduled', service:'Уборка после ремонта', serviceId:'renovation', notes:'Точная цена после осмотра объекта'});
 
   // A couple of cancelled orders, for realism.
   addOrder({clientId:c6, date:dm(-2,12), time:'14:00', amount:2900, cleaners:[k2], status:'cancelled', notes:'Клиент перенёс'});
@@ -1227,6 +1271,7 @@ function renderModal(){
   else if(state.modal.type==='expenseForm') html = modalExpenseForm(state.modal.id);
   else if(state.modal.type==='salaryForm') html = modalSalaryForm(state.modal);
   else if(state.modal.type==='restoreOrderForm') html = modalRestoreOrderForm(state.modal);
+  else if(state.modal.type==='noteView') html = modalNoteView(state.modal);
   else if(state.modal.type==='lightbox') html = modalLightbox(state.modal.src);
   else if(state.modal.type==='confirmDeleteOrder') html = modalConfirmDeleteOrder(state.modal);
   else if(state.modal.type==='confirmDeleteCleaner') html = modalConfirmDeleteCleaner(state.modal.id);
@@ -1336,7 +1381,7 @@ function renderDashboard(){
   `;
 }
 function avgCheck(from, to){
-  const list = completedOrdersInRange(from, to);
+  const list = completedOrdersInRange(from, to).filter(o=>!o.isRange);
   if(!list.length) return 0;
   return list.reduce((s,o)=>s+(Number(o.amount)||0),0) / list.length;
 }
@@ -1353,7 +1398,7 @@ function renderOrderRow(o, opts){
         <div class="row-sub">${[o.service?esc(o.service):'', dateLine, cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="row-end">
-        <div class="num" style="font-weight:600">${formatMoney(o.amount)}</div>
+        <div class="num" style="font-weight:600">${formatOrderAmount(o)}</div>
         <span class="pill ${statusPillClass(o.status)}" style="margin-top:3px;">${statusLabel(o.status)}</span>
       </div>
     </div>`;
@@ -1368,7 +1413,7 @@ function renderCancelledOrderRow(o){
         <div class="row-sub">${[o.service?esc(o.service):'', 'отменён на '+formatDateWithDow(o.date), cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="row-end" style="display:flex; align-items:center; gap:8px;">
-        <div class="num" style="font-weight:600">${formatMoney(o.amount)}</div>
+        <div class="num" style="font-weight:600">${formatOrderAmount(o)}</div>
         <button class="btn btn-sm btn-primary" onclick="openRestoreOrderForm('${o.id}')">${ICONS.repeat}Восстановить</button>
       </div>
     </div>`;
@@ -1780,7 +1825,7 @@ function renderScheduleOrderCard(o){
             <span class="sched-card-name">${esc(name)}</span>
             ${phone ? `<a class="sched-card-phone" href="${telHref}">${esc(phone)}</a>` : ''}
           </div>
-          <span class="sched-card-amount">${formatMoney(o.amount)}</span>
+          <span class="sched-card-amount">${formatOrderAmount(o)}</span>
         </div>
         ${o.notes ? `<div class="sched-card-notes">${esc(o.notes)}</div>` : ''}
       </div>
@@ -1804,7 +1849,7 @@ function renderScheduleTableRow(o){
       <td>${phone ? `<a href="${telHref}" style="color:inherit;">${esc(phone)}</a>` : '—'}</td>
       <td><span class="sched-card-when">${formatDateTimeSched(o.date, o.time)}</span> <span class="pill ${statusPillClass(o.status)}" style="margin-left:6px;">${statusLabel(o.status)}</span></td>
       <td>${o.service ? `${color?`<span class="service-dot" style="background:${color}"></span>`:''}${esc(o.service)}` : '—'}</td>
-      <td class="num" style="font-weight:700;">${formatMoney(o.amount)}</td>
+      <td class="num" style="font-weight:700;">${formatOrderAmount(o)}</td>
       <td class="sched-td-notes">${esc(o.notes||'—')}</td>
       <td>
         <button type="button" class="btn btn-sm" title="Изменить" onclick="openOrderForm(null,'${o.id}')">${ICONS.edit}</button>
@@ -1874,7 +1919,8 @@ function renderSchedule(){
                 const dot = serviceColor(o.serviceId) ? `<span class="service-dot" style="background:${serviceColor(o.serviceId)}"></span>` : '';
                 const addr = clientById(o.clientId)?.address;
                 const label = addr || o.clientName || 'Заказ';
-                return `<div class="cal-chip ${o.status==='completed'?'done':o.status==='cancelled'?'cancel':''}">${dot}${o.time?o.time+' ':''}${esc(label)}</div>`;
+                const star = o.notes ? `<span class="cal-note-star" title="Есть заметка" onclick="event.stopPropagation(); showOrderNote('${o.id}')">★</span>` : '';
+                return `<div class="cal-chip ${o.status==='completed'?'done':o.status==='cancelled'?'cancel':''}">${dot}<span class="cal-chip-label">${o.time?o.time+' ':''}${esc(label)}</span>${star}</div>`;
               }).join('')}
               ${dayOrders.length>3 ? `<div class="cal-more">+${dayOrders.length-3} ещё</div>` : ''}
             </div>
@@ -2017,9 +2063,17 @@ function modalOrderForm(m){
           <div class="field"><label>Дата *</label><input type="date" id="of_date" required value="${dateVal}"></div>
           <div class="field"><label>Время</label><input type="time" id="of_time" value="${o?.time||pf.time||''}"></div>
         </div>
+        <div class="checkline" style="margin-bottom:12px;">
+          <input type="checkbox" id="of_range_toggle" ${o?.isRange?'checked':''} onchange="onRangeToggle(this)">
+          <label for="of_range_toggle" style="cursor:pointer;">Диапазон цены вместо точной суммы</label>
+        </div>
         <div class="field-row">
-          <div class="field"><label>Сумма, ₽ *</label><input type="number" id="of_amount" min="0" step="1" required value="${o?.amount??pf.amount??''}"></div>
-          <div class="field"><label>Статус</label>
+          <div class="field" id="of_amount_wrap" ${o?.isRange?'hidden':''}>
+            <label>Сумма, ₽ *</label>
+            <input type="number" id="of_amount" min="0" step="1" ${o?.isRange?'':'required'} value="${o?.amount??pf.amount??''}">
+          </div>
+          <div class="field">
+            <label>Статус</label>
             <select id="of_status">
               <option value="scheduled" ${!o||o.status==='scheduled'?'selected':''}>Запланирован</option>
               <option value="completed" ${o?.status==='completed'?'selected':''}>Выполнен</option>
@@ -2027,6 +2081,11 @@ function modalOrderForm(m){
             </select>
           </div>
         </div>
+        <div class="field-row" id="of_range_wrap" ${o?.isRange?'':'hidden'}>
+          <div class="field"><label>Сумма от, ₽</label><input type="number" id="of_amount_min" min="0" step="1" value="${o?.amountMin??''}"></div>
+          <div class="field"><label>Сумма до, ₽</label><input type="number" id="of_amount_max" min="0" step="1" value="${o?.amountMax??''}"></div>
+        </div>
+        ${o?.isRange ? `<div class="hint" style="margin:-6px 0 13px;">Заказ с диапазоном цены не учитывается в доходах и не завершается автоматически, пока цена не будет уточнена</div>` : ''}
 
         <div class="field">
           <label>Услуга</label>
@@ -2134,6 +2193,11 @@ function toggleNewClientFields(){
 function onServiceSelectChange(sel){
   document.getElementById('of_service_custom_wrap').hidden = sel.value !== '__custom__';
 }
+function onRangeToggle(cb){
+  document.getElementById('of_amount_wrap').hidden = cb.checked;
+  document.getElementById('of_amount').required = !cb.checked;
+  document.getElementById('of_range_wrap').hidden = !cb.checked;
+}
 function onRecurrenceChange(sel){
   document.getElementById('of_untilWrap').hidden = sel.value === 'none';
 }
@@ -2143,8 +2207,17 @@ async function submitOrderForm(ev, editId){
   errEl.hidden = true;
   const date = document.getElementById('of_date').value;
   const time = document.getElementById('of_time').value;
-  const amount = Number(document.getElementById('of_amount').value)||0;
   const status = document.getElementById('of_status').value;
+  const isRange = !!document.getElementById('of_range_toggle')?.checked;
+  let amount = 0, amountMin = null, amountMax = null;
+  if(isRange){
+    amountMin = Number(document.getElementById('of_amount_min').value)||0;
+    amountMax = Number(document.getElementById('of_amount_max').value)||0;
+    if(!amountMin || !amountMax){ errEl.textContent='Укажите обе границы диапазона цены'; errEl.hidden=false; return false; }
+    if(amountMin > amountMax){ errEl.textContent='«Сумма от» не может быть больше «до»'; errEl.hidden=false; return false; }
+  }else{
+    amount = Number(document.getElementById('of_amount').value)||0;
+  }
   const serviceSelectVal = document.getElementById('of_service_select').value;
   let serviceId = null, service = '';
   if(serviceSelectVal === '__custom__'){
@@ -2162,7 +2235,7 @@ async function submitOrderForm(ev, editId){
   if(!date){ errEl.textContent='Укажите дату заказа'; errEl.hidden=false; return false; }
 
   if(editId){
-    await updateDocById('orders', editId, {date, time, amount, status, service, serviceId, area, notes, cleanerIds, cleanerNames});
+    await updateDocById('orders', editId, {date, time, amount, isRange, amountMin, amountMax, status, service, serviceId, area, notes, cleanerIds, cleanerNames});
     closeModal();
     toast('Заказ обновлён');
     return false;
@@ -2189,7 +2262,7 @@ async function submitOrderForm(ev, editId){
   }
 
   const recurrence = document.getElementById('of_recurrence')?.value || 'none';
-  const base = { clientId, clientName, time, amount, status, service, serviceId, area, notes, cleanerIds, cleanerNames };
+  const base = { clientId, clientName, time, amount, isRange, amountMin, amountMax, status, service, serviceId, area, notes, cleanerIds, cleanerNames };
 
   if(recurrence === 'none'){
     await addDoc('orders', { ...base, date, seriesId:null, recurrenceType:'none', createdAt:new Date().toISOString() });
@@ -2371,7 +2444,7 @@ function renderFinances(){
   });
 
   const incomeItems = state.orders
-    .filter(o=>o.status==='completed' && o.date>=p.from && o.date<=p.to)
+    .filter(o=>o.status==='completed' && !o.isRange && o.date>=p.from && o.date<=p.to)
     .sort((a,b)=> b.date.localeCompare(a.date));
   const expenseItems = state.expenses
     .filter(e=>e.date>=p.from && e.date<=p.to)
@@ -2463,7 +2536,7 @@ function renderFinances(){
                   <div class="row-sub">${esc((o.cleanerNames||[]).join(', ')||'Без клинера')}</div>
                 </div>
                 <div class="row-end" style="display:flex; align-items:center; gap:8px;">
-                  <div class="num" style="font-weight:600; color:var(--status-good-fg);">+${formatMoney(o.amount)}</div>
+                  <div class="num" style="font-weight:600; color:var(--status-good-fg);">+${formatOrderAmount(o)}</div>
                 </div>
               </div>`).join('')}
         </div>
