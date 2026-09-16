@@ -318,6 +318,8 @@
   .sched-card-phone:hover{text-decoration:underline;}
   .sched-card-amount{font-family:'IBM Plex Mono'; font-weight:700; font-size:14px; white-space:nowrap; flex:0 0 auto;}
   .sched-card-notes{margin-top:6px; font-size:12.5px; color:var(--text-3); line-height:1.4;}
+  .sched-card.is-cancelled .sched-card-main{text-decoration:line-through; text-decoration-color:var(--status-bad-fg); text-decoration-thickness:1.5px;}
+  .sched-table tr.is-cancelled td:not(:last-child){text-decoration:line-through; text-decoration-color:var(--status-bad-fg); text-decoration-thickness:1.5px;}
   .sched-card-actions{display:flex; flex-direction:column; gap:6px; flex:0 0 auto;}
   .sched-icon-btn{
     width:30px; height:30px; border-radius:9px; border:1px solid var(--border);
@@ -796,8 +798,13 @@ let currentPhotosCache = [];
 /* ---------------- derived data ---------------- */
 function clientById(id){ return state.clients.find(c=>c.id===id); }
 function cleanerById(id){ return state.cleaners.find(c=>c.id===id); }
+/* Stable secondary sort: cancelled orders always sink to the bottom of a list,
+   keeping whatever primary order (date, time…) they already had otherwise. */
+function sortCancelledLast(list){
+  return list.sort((a,b)=> (a.status==='cancelled')-(b.status==='cancelled'));
+}
 function ordersForClient(clientId){
-  return state.orders.filter(o=>o.clientId===clientId).sort((a,b)=> (b.date+ (b.time||'')).localeCompare(a.date+(a.time||'')));
+  return sortCancelledLast(state.orders.filter(o=>o.clientId===clientId).sort((a,b)=> (b.date+ (b.time||'')).localeCompare(a.date+(a.time||''))));
 }
 function clientLTV(clientId){
   return state.orders.filter(o=>o.clientId===clientId && o.status==='completed' && !o.isRange).reduce((s,o)=>s+(Number(o.amount)||0),0);
@@ -870,7 +877,7 @@ function upcomingOrders(days){
     .sort((a,b)=> (a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
 }
 function ordersOnDate(dateStr){
-  return state.orders.filter(o=>o.date===dateStr).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+  return sortCancelledLast(state.orders.filter(o=>o.date===dateStr).sort((a,b)=> (a.time||'').localeCompare(b.time||'')));
 }
 function dayNoteFor(dateStr){
   const n = state.dayNotes.find(x=>x.id===dateStr);
@@ -1109,10 +1116,10 @@ function seedDemoData(){
 
   /* ---- orders ---- */
   const orders = [];
-  function addOrder({clientId, date, time, amount, cleaners, status, service='', serviceId=null, notes='', seriesId=null, recurrenceType='none', isRange=false, amountMin=null, amountMax=null}){
+  function addOrder({clientId, date, time, amount, cleaners, status, service='', serviceId=null, area=null, notes='', seriesId=null, recurrenceType='none', isRange=false, amountMin=null, amountMax=null}){
     orders.push({
       id: uid('o'), clientId, clientName: clName(clientId), date, time, amount,
-      isRange, amountMin, amountMax,
+      isRange, amountMin, amountMax, area,
       cleanerIds: cleaners, cleanerNames: cleaners.map(cName),
       status, service, serviceId, notes, seriesId, recurrenceType, createdAt: date,
     });
@@ -1154,7 +1161,7 @@ function seedDemoData(){
 
   // Upcoming one-off scheduled jobs, so "Ближайшие заказы" has variety beyond the series.
   addOrder({clientId:c3,  date:dm(0,10), time:'10:00', amount:2700, cleaners:[k1], status:'scheduled', service:'Генеральная уборка', serviceId:'general', notes:''});
-  addOrder({clientId:c10, date:dm(0,16), time:'15:00', amount:3900, cleaners:[k4], status:'scheduled', service:'Мойка окон', serviceId:'windows', notes:'Мытьё окон'});
+  addOrder({clientId:c10, date:dm(0,16), time:'15:00', amount:3900, cleaners:[k4], status:'scheduled', service:'Мойка окон', serviceId:'windows', area:65, notes:'Мытьё окон'});
   addOrder({clientId:c6,  date:dm(0,21), time:'11:00', amount:3000, cleaners:[k3], status:'scheduled', service:'Поддерживающая уборка', serviceId:'support', notes:''});
   addOrder({clientId:c8,  date:dm(0,14), time:'12:00', amount:0, isRange:true, amountMin:4000, amountMax:6000, cleaners:[k2], status:'scheduled', service:'Уборка после ремонта', serviceId:'renovation', notes:'Точная цена после осмотра объекта'});
 
@@ -1403,7 +1410,7 @@ function renderOrderRow(o, opts){
       <div class="row-avatar">${initials(o.clientName||(cl&&cl.name))}</div>
       <div class="row-main">
         <div class="row-title">${esc(o.clientName || (cl&&cl.name) || 'Клиент удалён')}</div>
-        <div class="row-sub">${[o.service?esc(o.service):'', dateLine, cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
+        <div class="row-sub">${[o.service?esc(o.service):'', o.area?o.area+' м²':'', dateLine, cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="row-end">
         <div class="num" style="font-weight:600">${formatOrderAmount(o)}</div>
@@ -1416,12 +1423,12 @@ function renderCancelledOrderRow(o){
   return `
     <div class="row-item">
       <div class="row-avatar">${initials(o.clientName||(cl&&cl.name))}</div>
-      <div class="row-main">
+      <div class="row-main" style="text-decoration:line-through; text-decoration-color:var(--status-bad-fg); text-decoration-thickness:1.5px;">
         <div class="row-title">${esc(o.clientName || (cl&&cl.name) || 'Клиент удалён')}</div>
-        <div class="row-sub">${[o.service?esc(o.service):'', 'отменён на '+formatDateWithDow(o.date), cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
+        <div class="row-sub">${[o.service?esc(o.service):'', o.area?o.area+' м²':'', 'отменён на '+formatDateWithDow(o.date), cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="row-end" style="display:flex; align-items:center; gap:8px;">
-        <div class="num" style="font-weight:600">${formatOrderAmount(o)}</div>
+        <div class="num" style="font-weight:600; text-decoration:line-through; text-decoration-color:var(--status-bad-fg); text-decoration-thickness:1.5px;">${formatOrderAmount(o)}</div>
         <button class="btn btn-sm btn-primary" onclick="openRestoreOrderForm('${o.id}')">${ICONS.repeat}Восстановить</button>
       </div>
     </div>`;
@@ -1877,15 +1884,20 @@ function renderScheduleOrderCard(o, opts){
   const phone = cl?.phone || '';
   const telHref = phone ? 'tel:' + phone.replace(/[^\d+]/g,'') : '';
   const color = serviceColor(o.serviceId);
+  const cancelled = o.status==='cancelled';
+  const metaParts = [];
+  if(o.service) metaParts.push(esc(o.service));
+  if(o.area) metaParts.push(`${o.area} м²`);
+  const metaLine = metaParts.length ? `<div class="sched-card-service">${color?`<span class="service-dot" style="background:${color}"></span>`:''}${metaParts.join(' · ')}</div>` : '';
   return `
-    <div class="sched-card">
+    <div class="sched-card ${cancelled?'is-cancelled':''}">
       <div class="sched-card-main">
         <div class="sched-card-title">${esc(title)} ${o.seriesId?ICONS.repeat:''}</div>
         <div class="sched-card-datetime">
           <span class="sched-card-when">${formatDateTimeSched(o.date, o.time)}</span>
           <span class="pill ${statusPillClass(o.status)}">${statusLabel(o.status)}</span>
         </div>
-        ${o.service ? `<div class="sched-card-service">${color?`<span class="service-dot" style="background:${color}"></span>`:''}${esc(o.service)}</div>` : ''}
+        ${metaLine}
         <div class="sched-card-row2">
           <div class="sched-card-who">
             <span class="sched-card-name">${esc(name)}</span>
@@ -1910,13 +1922,15 @@ function renderScheduleTableRow(o, opts){
   const phone = cl?.phone || '';
   const telHref = phone ? 'tel:' + phone.replace(/[^\d+]/g,'') : '';
   const color = serviceColor(o.serviceId);
+  const cancelled = o.status==='cancelled';
   return `
-    <tr>
+    <tr class="${cancelled?'is-cancelled':''}">
       <td>${esc(title)} ${o.seriesId?ICONS.repeat:''}</td>
       <td>${esc(name)}</td>
       <td>${phone ? `<a href="${telHref}" style="color:inherit;">${esc(phone)}</a>` : '—'}</td>
       <td><span class="sched-card-when">${formatDateTimeSched(o.date, o.time)}</span> <span class="pill ${statusPillClass(o.status)}" style="margin-left:6px;">${statusLabel(o.status)}</span></td>
       <td>${o.service ? `${color?`<span class="service-dot" style="background:${color}"></span>`:''}${esc(o.service)}` : '—'}</td>
+      <td class="num">${o.area ? o.area+' м²' : '—'}</td>
       <td class="num" style="font-weight:700;">${formatOrderAmount(o)}</td>
       <td class="sched-td-notes">${esc(o.notes||'—')}</td>
       <td style="white-space:nowrap;">
@@ -1933,7 +1947,7 @@ function renderScheduleOrderList(orders, opts){
     <div class="sched-order-container">
       <div class="table-wrap">
         <table class="sched-table">
-          <thead><tr><th>Адрес</th><th>Клиент</th><th>Телефон</th><th>Дата и время</th><th>Услуга</th><th class="num">Сумма</th><th>Заметки</th><th></th></tr></thead>
+          <thead><tr><th>Адрес</th><th>Клиент</th><th>Телефон</th><th>Дата и время</th><th>Услуга</th><th class="num">Площадь</th><th class="num">Сумма</th><th>Заметки</th><th></th></tr></thead>
           <tbody>${orders.map(o=>renderScheduleTableRow(o, opts)).join('')}</tbody>
         </table>
       </div>
