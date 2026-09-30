@@ -713,7 +713,7 @@ let DB = null;
 let DEMO = false;
 const local = { clients:[], cleaners:[], orders:[], expenses:[], dayNotes:[], salaryOverrides:[] };
 const localSub = { clients:[], cleaners:[], orders:[], expenses:[], dayNotes:[], salaryOverrides:[] };
-const localPhotos = {}; // clientId -> [{id,dataUrl,caption,addedAt}]
+const localPhotos = {}; // parentPath ('clients/id' or 'orders/id') -> [{id,dataUrl,caption,addedAt}]
 
 function notifyLocal(col){ (localSub[col]||[]).forEach(fn=>fn(local[col].slice())); }
 
@@ -752,26 +752,26 @@ async function deleteDocById(col, id){
   local[col] = local[col].filter(x=>x.id!==id);
   notifyLocal(col);
 }
-async function addPhoto(clientId, photo){
-  const col = `clients/${clientId}/photos`;
+async function addPhoto(parentPath, photo){
+  const col = `${parentPath}/photos`;
   if(DB){ const ref = await DB.collection(col).add(photo); return ref.id; }
   const id = uid('photo');
-  localPhotos[clientId] = localPhotos[clientId]||[];
-  localPhotos[clientId].unshift({id, ...photo});
+  localPhotos[parentPath] = localPhotos[parentPath]||[];
+  localPhotos[parentPath].unshift({id, ...photo});
   return id;
 }
-async function getPhotos(clientId){
-  const col = `clients/${clientId}/photos`;
+async function getPhotos(parentPath){
+  const col = `${parentPath}/photos`;
   if(DB){
     const snap = await DB.collection(col).get();
     return snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
   }
-  return (localPhotos[clientId]||[]).slice();
+  return (localPhotos[parentPath]||[]).slice();
 }
-async function deletePhoto(clientId, photoId){
-  const col = `clients/${clientId}/photos`;
+async function deletePhoto(parentPath, photoId){
+  const col = `${parentPath}/photos`;
   if(DB){ await DB.doc(col+'/'+photoId).delete(); return; }
-  localPhotos[clientId] = (localPhotos[clientId]||[]).filter(p=>p.id!==photoId);
+  localPhotos[parentPath] = (localPhotos[parentPath]||[]).filter(p=>p.id!==photoId);
 }
 
 /* ---------------- app state ---------------- */
@@ -794,6 +794,8 @@ function isFullyLoaded(){ return DEMO || Object.values(state.loadedFlags).every(
 let activeCleanerSet = new Set(); // used by order form modal
 let currentPhotosClientId = null;
 let currentPhotosCache = [];
+let currentPhotosOrderId = null;
+let currentOrderPhotosCache = [];
 
 /* ---------------- derived data ---------------- */
 function clientById(id){ return state.clients.find(c=>c.id===id); }
@@ -1722,7 +1724,7 @@ async function submitClientForm(ev, id){
     for(const file of Array.from(fileInput.files).slice(0,6)){
       try{
         const dataUrl = await compressImage(file);
-        await addPhoto(clientId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
+        await addPhoto('clients/'+clientId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
       }catch(e){ console.error(e); }
     }
     if(DEMO) render();
@@ -1735,7 +1737,7 @@ async function submitClientForm(ev, id){
 function openClientDetail(id){ openModal({type:'clientDetail', id}); loadClientPhotos(id); }
 async function loadClientPhotos(id){
   currentPhotosClientId = id;
-  currentPhotosCache = await getPhotos(id);
+  currentPhotosCache = await getPhotos('clients/'+id);
   if(state.modal && state.modal.type==='clientDetail' && state.modal.id===id) renderModal();
 }
 function modalClientDetail(id){
@@ -1793,19 +1795,58 @@ async function uploadClientPhotos(ev, clientId){
   for(const file of files){
     try{
       const dataUrl = await compressImage(file);
-      await addPhoto(clientId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
+      await addPhoto('clients/'+clientId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
     }catch(e){ console.error(e); toast('Не удалось загрузить одно из фото'); }
   }
   await loadClientPhotos(clientId);
   toast('Фото добавлены');
 }
 async function removeClientPhoto(clientId, photoId){
-  await deletePhoto(clientId, photoId);
+  await deletePhoto('clients/'+clientId, photoId);
   await loadClientPhotos(clientId);
 }
 function openLightboxPhoto(photoId){
   const p = currentPhotosCache.find(x=>x.id===photoId);
   if(p) openModal({type:'lightbox', src:p.dataUrl});
+}
+/* ---- order photos (same photos/ subcollection pattern as clients) ---- */
+async function loadOrderPhotos(orderId){
+  currentPhotosOrderId = orderId;
+  currentOrderPhotosCache = await getPhotos('orders/'+orderId);
+  if(state.modal && state.modal.type==='orderForm' && state.modal.editId===orderId) renderModal();
+}
+async function uploadOrderPhotos(ev, orderId){
+  const files = Array.from(ev.target.files||[]).slice(0,6);
+  if(!files.length) return;
+  toast('Загружаю фото…');
+  for(const file of files){
+    try{
+      const dataUrl = await compressImage(file);
+      await addPhoto('orders/'+orderId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
+    }catch(e){ console.error(e); toast('Не удалось загрузить одно из фото'); }
+  }
+  await loadOrderPhotos(orderId);
+  toast('Фото добавлены');
+}
+async function removeOrderPhoto(orderId, photoId){
+  await deletePhoto('orders/'+orderId, photoId);
+  await loadOrderPhotos(orderId);
+}
+function openLightboxOrderPhoto(photoId){
+  const p = currentOrderPhotosCache.find(x=>x.id===photoId);
+  if(p) openModal({type:'lightbox', src:p.dataUrl});
+}
+/* Attaches whatever the "Фото объекта" file input holds to a freshly created order
+   (called once, right after addDoc, since a new order has no id beforehand). */
+async function uploadNewOrderPhotos(orderId){
+  const fileInput = document.getElementById('of_photos');
+  if(!fileInput || !fileInput.files || !fileInput.files.length) return;
+  for(const file of Array.from(fileInput.files).slice(0,6)){
+    try{
+      const dataUrl = await compressImage(file);
+      await addPhoto('orders/'+orderId, {dataUrl, caption:'', addedAt: new Date().toISOString()});
+    }catch(e){ console.error(e); }
+  }
 }
 function modalLightbox(src){
   return `<div class="lightbox" onclick="if(event.target===this) closeModal()">
@@ -1866,8 +1907,8 @@ function modalConfirmDeleteClient(id){
   </div>`;
 }
 async function doDeleteClient(id){
-  const photos = await getPhotos(id);
-  for(const p of photos) await deletePhoto(id, p.id);
+  const photos = await getPhotos('clients/'+id);
+  for(const p of photos) await deletePhoto('clients/'+id, p.id);
   await deleteDocById('clients', id);
   closeModal();
   toast('Клиент удалён');
@@ -2085,8 +2126,10 @@ function openOrderForm(prefill, editId){
     const o = state.orders.find(x=>x.id===editId);
     if(o) (o.cleanerIds||[]).forEach(id=>activeCleanerSet.add(id));
     openModal({type:'orderForm', editId, prefill: o||{}});
+    loadOrderPhotos(editId);
   }else{
     if(prefill && prefill.cleanerIds) prefill.cleanerIds.forEach(id=>activeCleanerSet.add(id));
+    currentPhotosOrderId = null; currentOrderPhotosCache = [];
     openModal({type:'orderForm', editId:null, prefill: prefill||{}});
   }
 }
@@ -2099,6 +2142,11 @@ function resolveServiceSelection(serviceText, serviceId){
   }
   return {selectId: '', customText: ''};
 }
+function repeatLastButtonHtml(clientId){
+  const last = clientId ? clientLastOrder(clientId) : null;
+  if(!last) return '';
+  return `<button type="button" class="btn btn-sm btn-accent-outline" onclick="applyLastOrderToForm('${clientId}')">${ICONS.repeat}Повторить последний заказ</button>`;
+}
 function modalOrderForm(m){
   const editId = m.editId;
   const o = editId ? state.orders.find(x=>x.id===editId) : null;
@@ -2108,6 +2156,7 @@ function modalOrderForm(m){
   const year = parseISO(dateVal).getFullYear();
   const prefClient = (!isEdit && pf.clientId) ? clientById(pf.clientId) : null;
   const svc = resolveServiceSelection(o?.service ?? pf.service ?? '', o?.serviceId ?? pf.serviceId ?? '');
+  const photos = (currentPhotosOrderId===editId) ? currentOrderPhotosCache : [];
   return `
   <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
     <div class="modal">
@@ -2127,6 +2176,7 @@ function modalOrderForm(m){
                 onblur="setTimeout(()=>{ const d=document.getElementById('of_client_dropdown'); if(d) d.hidden=true; }, 150)">
               <div id="of_client_dropdown" class="client-search-dropdown" hidden></div>
             </div>
+            <div id="of_repeat_last_wrap" style="margin-top:8px;">${repeatLastButtonHtml(prefClient?.id)}</div>
             <button type="button" class="btn btn-sm" style="margin-top:8px;" onclick="toggleNewClientFields()">${ICONS.plus}Новый клиент</button>
           `}
         </div>
@@ -2198,6 +2248,23 @@ function modalOrderForm(m){
 
         <div class="field"><label>Заметки</label><textarea id="of_notes" placeholder="Комментарий к заказу">${esc(o?.notes||'')}</textarea></div>
 
+        <div class="field">
+          <label>Фото объекта</label>
+          ${isEdit ? `
+            <div class="photo-grid" style="margin-bottom:6px;">
+              ${photos.map(p=>`
+                <div class="photo-thumb">
+                  <img src="${p.dataUrl}" onclick="openLightboxOrderPhoto('${p.id}')">
+                  <button class="del" type="button" onclick="event.stopPropagation(); removeOrderPhoto('${o.id}','${p.id}')" title="Удалить фото">${ICONS.x}</button>
+                </div>`).join('')}
+            </div>
+            <label class="btn btn-sm" style="margin:0;">${ICONS.camera}Добавить фото<input type="file" accept="image/*" multiple style="display:none" onchange="uploadOrderPhotos(event,'${o.id}')"></label>
+          ` : `
+            <input type="file" id="of_photos" accept="image/*" multiple>
+            <div class="hint">Можно выбрать несколько фото сразу</div>
+          `}
+        </div>
+
         ${!isEdit ? `
         <div class="field">
           <label>Повтор заказа</label>
@@ -2240,6 +2307,7 @@ function onClientSearchInput(input){
   const dropdown = document.getElementById('of_client_dropdown');
   if(!dropdown) return;
   document.getElementById('of_client').value = '';
+  updateRepeatLastButton('');
   const q = input.value.trim().toLowerCase();
   if(!q){ dropdown.hidden = true; dropdown.innerHTML = ''; return; }
   const matches = state.clients.filter(c =>
@@ -2258,6 +2326,7 @@ function selectClientFromSearch(id){
   document.getElementById('of_client_search').value = c.name;
   const dropdown = document.getElementById('of_client_dropdown');
   dropdown.hidden = true; dropdown.innerHTML = '';
+  updateRepeatLastButton(id);
 }
 function toggleNewClientFields(){
   const wrap = document.getElementById('of_newClientFields');
@@ -2269,9 +2338,47 @@ function toggleNewClientFields(){
     document.getElementById('of_client_search').value = '';
     const dropdown = document.getElementById('of_client_dropdown');
     if(dropdown){ dropdown.hidden = true; dropdown.innerHTML = ''; }
+    updateRepeatLastButton('');
   }else if(hidden.value === '__new__'){
     hidden.value = '';
   }
+}
+function updateRepeatLastButton(clientId){
+  const wrap = document.getElementById('of_repeat_last_wrap');
+  if(wrap) wrap.innerHTML = repeatLastButtonHtml(clientId);
+}
+/* Fills the still-open "new order" form from the client's last (non-cancelled)
+   order — everything except the date field, which the user is expected to change. */
+function applyLastOrderToForm(clientId){
+  const last = clientLastOrder(clientId);
+  if(!last) return;
+  if(last.time) document.getElementById('of_time').value = last.time;
+
+  const rangeToggle = document.getElementById('of_range_toggle');
+  rangeToggle.checked = !!last.isRange;
+  onRangeToggle(rangeToggle);
+  if(last.isRange){
+    document.getElementById('of_amount_min').value = last.amountMin ?? '';
+    document.getElementById('of_amount_max').value = last.amountMax ?? '';
+  }else{
+    document.getElementById('of_amount').value = last.amount ?? '';
+  }
+
+  const svc = resolveServiceSelection(last.service||'', last.serviceId||'');
+  const serviceSelect = document.getElementById('of_service_select');
+  serviceSelect.value = svc.selectId;
+  onServiceSelectChange(serviceSelect);
+  if(svc.selectId==='__custom__') document.getElementById('of_service_custom').value = svc.customText;
+
+  document.getElementById('of_area').value = last.area ?? '';
+  document.getElementById('of_notes').value = last.notes || '';
+
+  activeCleanerSet = new Set(last.cleanerIds||[]);
+  document.querySelectorAll('#of_cleaners .chip-toggle').forEach(btn=>{
+    btn.classList.toggle('on', activeCleanerSet.has(btn.getAttribute('data-cleaner')));
+  });
+
+  toast('Заполнено по последнему заказу — проверьте дату');
 }
 function onServiceSelectChange(sel){
   document.getElementById('of_service_custom_wrap').hidden = sel.value !== '__custom__';
@@ -2348,7 +2455,8 @@ async function submitOrderForm(ev, editId){
   const base = { clientId, clientName, time, amount, isRange, amountMin, amountMax, status, service, serviceId, area, notes, cleanerIds, cleanerNames };
 
   if(recurrence === 'none'){
-    await addDoc('orders', { ...base, date, seriesId:null, recurrenceType:'none', createdAt:new Date().toISOString() });
+    const newId = await addDoc('orders', { ...base, date, seriesId:null, recurrenceType:'none', createdAt:new Date().toISOString() });
+    await uploadNewOrderPhotos(newId);
   }else{
     const until = document.getElementById('of_until').value || `${parseISO(date).getFullYear()}-12-31`;
     const seriesId = uid('series');
@@ -2360,9 +2468,12 @@ async function submitOrderForm(ev, editId){
       dates.push(cur);
       guard++;
     }
+    let firstId = null;
     for(const d of dates){
-      await addDoc('orders', { ...base, date:d, seriesId, recurrenceType:recurrence, createdAt:new Date().toISOString() });
+      const id = await addDoc('orders', { ...base, date:d, seriesId, recurrenceType:recurrence, createdAt:new Date().toISOString() });
+      if(!firstId) firstId = id;
     }
+    if(firstId) await uploadNewOrderPhotos(firstId);
     toast(`Создано заказов: ${dates.length}`);
     closeModal();
     return false;
@@ -2390,13 +2501,19 @@ function modalConfirmDeleteOrder(m){
   </div>`;
 }
 async function doDeleteOrder(orderId){
+  const photos = await getPhotos('orders/'+orderId);
+  for(const p of photos) await deletePhoto('orders/'+orderId, p.id);
   await deleteDocById('orders', orderId);
   closeModal();
   toast('Заказ удалён');
 }
 async function doDeleteSeries(seriesId, fromDate){
   const toDelete = state.orders.filter(o=>o.seriesId===seriesId && o.date>=fromDate);
-  for(const o of toDelete) await deleteDocById('orders', o.id);
+  for(const o of toDelete){
+    const photos = await getPhotos('orders/'+o.id);
+    for(const p of photos) await deletePhoto('orders/'+o.id, p.id);
+    await deleteDocById('orders', o.id);
+  }
   closeModal();
   toast(`Удалено заказов: ${toDelete.length}`);
 }
