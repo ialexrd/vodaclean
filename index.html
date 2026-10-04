@@ -888,30 +888,72 @@ function cleanerSalaryForPeriod(cleanerId, from, to){
    come from both completed orders and any existing overrides, so an override
    on a month that later has zero orders still gets reconciled (down to zero,
    i.e. deleted) instead of lingering. */
-async function ensureSalaryExpensesSynced(){
-  const months = new Set();
-  state.orders.forEach(o=>{ if(o.status==='completed' && !o.isRange) months.add(o.date.slice(0,7)); });
-  state.salaryOverrides.forEach(ov=>{ if(ov.from) months.add(ov.from.slice(0,7)); });
-  for(const ym of months){
-    const [y,m] = ym.split('-').map(Number);
-    const [from,to] = monthBounds(y, m-1);
-    for(const k of state.cleaners){
-      const amount = Math.round(cleanerFinalSalary(k.id, from, to));
-      const id = salaryOverrideDocId(k.id, from, to);
-      const existing = state.expenses.find(e=>e.id===id);
-      if(amount > 0){
-        if(!existing || Math.round(Number(existing.amount)||0)!==amount){
-          await setDocById('expenses', id, {
-            date: to, amount, category:'Зарплата клинерам',
-            description: `Зарплата — ${k.name}`,
-            cleanerId: k.id, salaryFrom: from, salaryTo: to, auto: true,
-          });
-        }
-      }else if(existing){
-        await deleteDocById('expenses', id);
+function salaryOrderDocId(orderId, cleanerId){ return `${orderId}__${cleanerId}`; }
+/* One expense entry per (order, cleaner) — dated on the order itself, so a
+   cleaner's 40% cut shows up in Расходы the same way each order shows up in
+   Доходы: day by day, tied to the actual job. Skipped for a cleaner+month
+   that has a manual override (see below) — that month gets one summary line
+   instead of being itemized, since the owner explicitly overrode the total. */
+async function syncOrderSalaryExpenses(order){
+  const cleanerIds = order.cleanerIds || [];
+  const n = cleanerIds.length || 1;
+  const shouldPay = order.status==='completed' && !order.isRange && order.date;
+  const perCleaner = shouldPay ? Math.round((Number(order.amount)||0) * SALARY_RATE / n) : 0;
+  const [monthFrom, monthTo] = shouldPay ? monthBounds(parseISO(order.date).getFullYear(), parseISO(order.date).getMonth()) : [null,null];
+  for(const k of state.cleaners){
+    const id = salaryOrderDocId(order.id, k.id);
+    const existing = state.expenses.find(e=>e.id===id);
+    const overridden = shouldPay && salaryOverrideFor(k.id, monthFrom, monthTo);
+    const want = shouldPay && perCleaner>0 && cleanerIds.includes(k.id) && !overridden;
+    if(want){
+      if(!existing || Math.round(Number(existing.amount)||0)!==perCleaner){
+        await setDocById('expenses', id, {
+          date: order.date, amount: perCleaner, category:'Зарплата клинерам',
+          description: `${k.name} · ${order.clientName||'Клиент удалён'}${order.service?' · '+order.service:''}`,
+          cleanerId: k.id, orderId: order.id, auto: true,
+        });
       }
+    }else if(existing){
+      await deleteDocById('expenses', id);
     }
   }
+}
+/* A cleaner+month with a manual override collapses to one summary line
+   (dated at month-end) instead of itemized per-order entries — there's no
+   sane way to spread an arbitrary override number back across individual
+   jobs, so this is the one place salary still aggregates by month. */
+async function syncOverrideSummaryExpenses(){
+  for(const ov of state.salaryOverrides){
+    if(!ov.from || !ov.to) continue;
+    const amount = Math.round(Number(ov.amount)||0);
+    const id = salaryOverrideDocId(ov.cleanerId, ov.from, ov.to);
+    const existing = state.expenses.find(e=>e.id===id);
+    const k = cleanerById(ov.cleanerId);
+    if(amount > 0){
+      if(!existing || Math.round(Number(existing.amount)||0)!==amount){
+        await setDocById('expenses', id, {
+          date: ov.to, amount, category:'Зарплата клинерам',
+          description: `Зарплата — ${k?.name||''} (итог за месяц)`,
+          cleanerId: ov.cleanerId, salaryFrom: ov.from, salaryTo: ov.to, auto: true,
+        });
+      }
+    }else if(existing){
+      await deleteDocById('expenses', id);
+    }
+  }
+  // An override that got reset to auto shouldn't leave its summary line behind.
+  const liveOverrideIds = new Set(state.salaryOverrides.map(ov=>salaryOverrideDocId(ov.cleanerId, ov.from, ov.to)));
+  for(const e of state.expenses){
+    if(e.auto && e.salaryFrom && !e.orderId && !liveOverrideIds.has(e.id)) await deleteDocById('expenses', e.id);
+  }
+}
+async function ensureSalaryExpensesSynced(){
+  for(const o of state.orders) await syncOrderSalaryExpenses(o);
+  const orderIds = new Set(state.orders.map(o=>o.id));
+  for(const e of state.expenses){
+    if(e.auto && e.orderId && !orderIds.has(e.orderId)) await deleteDocById('expenses', e.id);
+  }
+  await syncOverrideSummaryExpenses();
 }
 function upcomingOrders(days){
   const from = todayISO();
@@ -2546,6 +2588,7 @@ function modalConfirmDeleteOrder(m){
 async function doDeleteOrder(orderId){
   const photos = await getPhotos('orders/'+orderId);
   for(const p of photos) await deletePhoto('orders/'+orderId, p.id);
+  for(const e of state.expenses.filter(e=>e.orderId===orderId)) await deleteDocById('expenses', e.id);
   await deleteDocById('orders', orderId);
   closeModal();
   toast('Заказ удалён');
@@ -2555,6 +2598,7 @@ async function doDeleteSeries(seriesId, fromDate){
   for(const o of toDelete){
     const photos = await getPhotos('orders/'+o.id);
     for(const p of photos) await deletePhoto('orders/'+o.id, p.id);
+    for(const e of state.expenses.filter(e=>e.orderId===o.id)) await deleteDocById('expenses', e.id);
     await deleteDocById('orders', o.id);
   }
   closeModal();
@@ -2802,7 +2846,9 @@ function renderFinances(){
               </div>
               <div class="row-end" style="display:flex; align-items:center; gap:8px;">
                 <div class="num" style="font-weight:600;">-${formatMoney(e.amount)}</div>
-                ${e.auto
+                ${e.orderId
+                  ? `<button class="btn btn-sm" title="Открыть заказ" onclick="openOrderForm(null,'${e.orderId}')">${ICONS.edit}</button>`
+                  : e.auto
                   ? `<button class="btn btn-sm" title="Изменить в зарплатах" onclick="openSalaryForm('${e.cleanerId}','${e.salaryFrom}','${e.salaryTo}')">${ICONS.edit}</button>`
                   : `<button class="btn btn-sm" onclick="openExpenseForm('${e.id}')">${ICONS.edit}</button>
                      <button class="btn btn-sm btn-danger" onclick="doDeleteExpense('${e.id}')">${ICONS.trash}</button>`}
