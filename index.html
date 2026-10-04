@@ -848,25 +848,68 @@ function cleanerFinalSalary(cleanerId, from, to){
 function cleanerOrderCount(cleanerId, from, to){
   return state.orders.filter(o=>o.status==='completed' && o.date>=from && o.date<=to && (o.cleanerIds||[]).includes(cleanerId)).length;
 }
-/* Keeps one "Зарплата клинерам" expense per cleaner+period mirroring cleanerFinalSalary().
-   Reuses the salary-override doc id in the (separate) expenses collection, so it's a
-   straightforward upsert/delete — not a write on every render, since it's a no-op
-   whenever the linked expense already matches the current amount. */
-async function ensureSalaryExpensesSynced(from, to){
-  for(const k of state.cleaners){
-    const amount = Math.round(cleanerFinalSalary(k.id, from, to));
-    const id = salaryOverrideDocId(k.id, from, to);
-    const existing = state.expenses.find(e=>e.id===id);
-    if(amount > 0){
-      if(!existing || Math.round(Number(existing.amount)||0)!==amount){
-        await setDocById('expenses', id, {
-          date: to, amount, category:'Зарплата клинерам',
-          description: `Зарплата — ${k.name}`,
-          cleanerId: k.id, salaryFrom: from, salaryTo: to, auto: true,
-        });
+/* Salary is only ever tracked/edited at whole-calendar-month granularity (see
+   ensureSalaryExpensesSynced below for why). Returns {year,month,from,to} when
+   [from,to] is exactly one full month, else null — callers use this to decide
+   whether an "edit salary" action makes sense for the period on screen. */
+function singleCalendarMonth(from, to){
+  const months = monthsInRange(from, to);
+  if(months.length !== 1) return null;
+  const {year, month} = months[0];
+  const [mf, mt] = monthBounds(year, month);
+  return (from===mf && to===mt) ? {year, month, from:mf, to:mt} : null;
+}
+/* Display-only aggregates for an arbitrary period: sum the canonical per-month
+   figure for every whole month it covers, and for a month it only partially
+   covers (the edges of a custom range), fall back to a plain 40% calc over
+   just that slice — never written to Firestore, never overridable, so this
+   can't create the kind of overlapping duplicate docs ensureSalaryExpensesSynced
+   used to produce when it was keyed to whatever period the UI happened to show. */
+function cleanerAutoSalaryForPeriod(cleanerId, from, to){
+  return monthsInRange(from, to).reduce((sum, {year, month})=>{
+    const [mf, mt] = monthBounds(year, month);
+    const f = mf < from ? from : mf, t = mt > to ? to : mt;
+    return sum + cleanerAutoSalary(cleanerId, f, t);
+  }, 0);
+}
+function cleanerSalaryForPeriod(cleanerId, from, to){
+  return monthsInRange(from, to).reduce((sum, {year, month})=>{
+    const [mf, mt] = monthBounds(year, month);
+    const f = mf < from ? from : mf, t = mt > to ? to : mt;
+    return sum + (f===mf && t===mt ? cleanerFinalSalary(cleanerId, mf, mt) : cleanerAutoSalary(cleanerId, f, t));
+  }, 0);
+}
+/* Keeps exactly one "Зарплата клинерам" expense per cleaner per calendar month,
+   mirroring cleanerFinalSalary() for that month. Deliberately ignores whatever
+   period is selected in the Finances UI — it used to sync against the
+   currently-displayed (from,to), so every custom range anyone ever viewed left
+   behind its own permanent, overlapping expense doc that never got cleaned up,
+   and summed together with all the others into wildly inflated totals. Months
+   come from both completed orders and any existing overrides, so an override
+   on a month that later has zero orders still gets reconciled (down to zero,
+   i.e. deleted) instead of lingering. */
+async function ensureSalaryExpensesSynced(){
+  const months = new Set();
+  state.orders.forEach(o=>{ if(o.status==='completed' && !o.isRange) months.add(o.date.slice(0,7)); });
+  state.salaryOverrides.forEach(ov=>{ if(ov.from) months.add(ov.from.slice(0,7)); });
+  for(const ym of months){
+    const [y,m] = ym.split('-').map(Number);
+    const [from,to] = monthBounds(y, m-1);
+    for(const k of state.cleaners){
+      const amount = Math.round(cleanerFinalSalary(k.id, from, to));
+      const id = salaryOverrideDocId(k.id, from, to);
+      const existing = state.expenses.find(e=>e.id===id);
+      if(amount > 0){
+        if(!existing || Math.round(Number(existing.amount)||0)!==amount){
+          await setDocById('expenses', id, {
+            date: to, amount, category:'Зарплата клинерам',
+            description: `Зарплата — ${k.name}`,
+            cleanerId: k.id, salaryFrom: from, salaryTo: to, auto: true,
+          });
+        }
+      }else if(existing){
+        await deleteDocById('expenses', id);
       }
-    }else if(existing){
-      await deleteDocById('expenses', id);
     }
   }
 }
@@ -2627,7 +2670,8 @@ async function doDeleteCleaner(id){
    ========================================================================= */
 function renderFinances(){
   const p = periodBounds(state.financePeriod, state.financeCustomFrom, state.financeCustomTo);
-  ensureSalaryExpensesSynced(p.from, p.to); // fire-and-forget; no-op once amounts already match
+  const singleMonth = singleCalendarMonth(p.from, p.to);
+  ensureSalaryExpensesSynced(); // fire-and-forget; no-op once amounts already match — always per calendar month, not tied to the period shown here
   const totalIncome = incomeInRange(p.from, p.to);
   const totalExpense = expensesInRange(p.from, p.to);
   const prevIncome = incomeInRange(p.prevFrom, p.prevTo);
@@ -2697,7 +2741,7 @@ function renderFinances(){
 
     <div class="panel">
       <div class="panel-head">
-        <div><h2>Зарплаты клинеров</h2><div class="sub">40% от суммы заказа, поровну между клинерами на заказе, ${p.label}. В скобках — число выполненных заказов за период</div></div>
+        <div><h2>Зарплаты клинеров</h2><div class="sub">40% от суммы заказа, поровну между клинерами на заказе, ${p.label}. В скобках — число выполненных заказов за период${singleMonth?'':'. Редактирование доступно только для периода в один календарный месяц'}</div></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -2705,16 +2749,16 @@ function renderFinances(){
           <tbody>
             ${state.cleaners.length===0 ? `<tr><td colspan="4" class="empty-note">Клинеров пока нет — добавьте во вкладке «Клинеры»</td></tr>` :
               state.cleaners.map(k=>{
-                const auto = cleanerAutoSalary(k.id, p.from, p.to);
-                const override = salaryOverrideFor(k.id, p.from, p.to);
-                const final = override ? (Number(override.amount)||0) : auto;
+                const auto = cleanerAutoSalaryForPeriod(k.id, p.from, p.to);
+                const override = singleMonth ? salaryOverrideFor(k.id, singleMonth.from, singleMonth.to) : null;
+                const final = cleanerSalaryForPeriod(k.id, p.from, p.to);
                 const orderCount = cleanerOrderCount(k.id, p.from, p.to);
                 return `
                 <tr>
                   <td><span class="cleaner-chip"><span class="cleaner-dot" style="background:${k.color}"></span>${esc(k.name)} <span style="color:var(--text-3); font-weight:500;">(${orderCount})</span></span></td>
                   <td class="num">${formatMoney(auto)}</td>
                   <td class="num" style="font-weight:700;">${formatMoney(final)}${override?` <span class="pill pill-neutral" style="margin-left:6px;">изменено</span>`:''}</td>
-                  <td style="text-align:right;"><button class="btn btn-sm" onclick="openSalaryForm('${k.id}','${p.from}','${p.to}')">${ICONS.edit}</button></td>
+                  <td style="text-align:right;">${singleMonth ? `<button class="btn btn-sm" onclick="openSalaryForm('${k.id}','${singleMonth.from}','${singleMonth.to}')">${ICONS.edit}</button>` : ''}</td>
                 </tr>`;
               }).join('')}
           </tbody>
