@@ -1520,12 +1520,12 @@ function renderCancelledOrderRow(o){
   return `
     <div class="row-item">
       <div class="row-avatar">${initials(o.clientName||(cl&&cl.name))}</div>
-      <div class="row-main" style="text-decoration:line-through; text-decoration-color:var(--status-bad-fg); text-decoration-thickness:1.5px;">
+      <div class="row-main">
         <div class="row-title">${esc(o.clientName || (cl&&cl.name) || 'Клиент удалён')}</div>
         <div class="row-sub">${[o.service?esc(o.service):'', o.area?o.area+' м²':'', 'отменён на '+formatDateWithDow(o.date), cleanerNamesLine(o).replace(/^·\s*/,'')].filter(Boolean).join(' · ')}</div>
       </div>
       <div class="row-end" style="display:flex; align-items:center; gap:8px;">
-        <div class="num" style="font-weight:600; text-decoration:line-through; text-decoration-color:var(--status-bad-fg); text-decoration-thickness:1.5px;">${formatOrderAmount(o)}</div>
+        <div class="num" style="font-weight:600;">${formatOrderAmount(o)}</div>
         <button class="btn btn-sm btn-primary" onclick="openRestoreOrderForm('${o.id}')">${ICONS.repeat}Восстановить</button>
       </div>
     </div>`;
